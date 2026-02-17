@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Recruitment Ad Generator</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <section class="panel controls">
+        <h1>Recruitment Ad Generator</h1>
+        <p class="subtitle">Generate branded job ad PNGs in portrait or landscape format.</p>
+
+        <form id="ad-form">
+          <label>
+            Job title
+            <input type="text" id="jobTitle" placeholder="Inventory & Warehouse Coordinator" required />
+          </label>
+
+          <label>
+            Location
+            <input type="text" id="location" placeholder="Dartmouth, NS" required />
+          </label>
+
+          <label>
+            Contact name
+            <input type="text" id="contactName" placeholder="Lisa Laviolette" required />
+          </label>
+
+          <label>
+            Orientation
+            <select id="orientationSelect">
+              <option value="portrait">Portrait (1080x1350)</option>
+              <option value="landscape">Landscape (1200x628)</option>
+            </select>
+          </label>
+
+          <div class="actions">
+            <button type="submit" class="primary">Generate</button>
+            <button type="button" id="downloadBtn">Download PNG</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel preview">
+        <h2>Live preview</h2>
+        <canvas id="adCanvas" width="1080" height="1350" aria-label="Generated job ad preview"></canvas>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
