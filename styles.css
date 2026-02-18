@@ -1,9 +1,3 @@
-@font-face {
-  font-family: 'Gotham';
-  src: local('Gotham Light'), local('Gotham Book'), local('Gotham');
-  font-weight: 300;
-}
-
 :root {
   --bg: #edf2fb;
   --panel: rgba(255, 255, 255, 0.62);
@@ -24,7 +18,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: 'Gotham', 'Avenir Next', 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   font-weight: 300;
   background: radial-gradient(circle at 15% 12%, #ffffff 0%, #eef3ff 42%, #dde7fb 100%);
   color: var(--text);
@@ -170,6 +164,63 @@ label {
   font-size: 0.8rem;
   font-weight: 400;
   color: #374056;
+}
+
+
+.upload-group {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.field-label {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: #374056;
+}
+
+.upload-shell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0.45rem;
+}
+
+.upload-shell input[type='file'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 0.38rem 0.6rem;
+  background: linear-gradient(180deg, rgba(10, 132, 255, 0.95), rgba(5, 112, 220, 0.95));
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.upload-name {
+  color: #5f6a82;
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-critique {
+  display: inline-block;
+  margin-top: 0.2rem;
+  color: #50607c;
 }
 
 .grid-two,

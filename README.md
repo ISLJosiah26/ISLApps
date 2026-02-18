@@ -1,14 +1,18 @@
-# Social Post Intelligence (Minimal Gotham UI)
+# Social Post Intelligence (Apple-Glass, Montserrat UI)
 
-A sleek, minimal web app that lets you upload and compare **multiple social posts** in separate tiles.
+A sleek, Apple-inspired web app that lets you upload and compare **multiple social posts** in separate tiles.
 
 ## What changed
 
-- Removed the fixed low-vs-high structure and use a **multi-post tile layout**.
-- Each post is an independent tile (no left-panel internal scroll container).
-- Added a dedicated **Add New Post** button underneath the tiles.
-- Updated to a cleaner, more minimal visual system.
-- Typography now uses **Gotham Light** (with local fallbacks).
+- Kept the glass-like Apple UI feel with frosted cards and soft gradients.
+- Switched typography to **Montserrat**.
+- Replaced the default browser file input appearance with a modern custom upload control.
+- Enhanced AI analysis with more creative and unique critique generation across:
+  - Hook architecture
+  - CTA strength
+  - Conversation depth (comments-to-likes)
+  - Timing context
+  - Visual characteristics (when images are uploaded)
 
 ## Per-post inputs
 
@@ -30,8 +34,8 @@ A sleek, minimal web app that lets you upload and compare **multiple social post
   - CTA strength (1–10)
 - Compares all posts and returns:
   - Top-performer snapshot
-  - Conversational summary
-  - Ranked comparison
+  - Conversational summary with deeper critique
+  - Ranked creative comparison with per-post critique notes
   - Actionable recommendations
 
 ## Usage

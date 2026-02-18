@@ -9,8 +9,9 @@ const conversation = document.getElementById('conversation');
 const comparison = document.getElementById('comparison');
 const recommendations = document.getElementById('recommendations');
 
-const HOOK_WORDS = ['how', 'why', 'secret', 'mistake', 'stop', 'before', 'now', 'guide', 'boost', 'proven'];
-const CTA_WORDS = ['comment', 'save', 'share', 'dm', 'click', 'follow', 'join', 'apply', 'learn more', 'tag'];
+const HOOK_WORDS = ['how', 'why', 'secret', 'mistake', 'stop', 'before', 'now', 'guide', 'boost', 'proven', 'truth', 'framework'];
+const CTA_WORDS = ['comment', 'save', 'share', 'dm', 'click', 'follow', 'join', 'apply', 'learn more', 'tag', 'download', 'reply'];
+const POWER_TONES = ['imagine', 'instantly', 'unlock', 'breakthrough', 'insider', 'simple'];
 
 function toNumber(value) {
   return Number.parseFloat(value) || 0;
@@ -38,6 +39,7 @@ function pickCardElements(card) {
   return {
     imageInput: card.querySelector('[data-field="image"]'),
     preview: card.querySelector('[data-preview]'),
+    fileName: card.querySelector('[data-file-name]'),
     caption: card.querySelector('[data-field="caption"]'),
     platform: card.querySelector('[data-field="platform"]'),
     postType: card.querySelector('[data-field="postType"]'),
@@ -48,7 +50,6 @@ function pickCardElements(card) {
     postDate: card.querySelector('[data-field="postDate"]'),
     postTime: card.querySelector('[data-field="postTime"]'),
     removeBtn: card.querySelector('[data-remove]'),
-    number: card.querySelector('[data-post-number]'),
   };
 }
 
@@ -59,16 +60,18 @@ function updateCardNumbers() {
   });
 }
 
-function setPreview(file, previewEl) {
+function setPreview(file, previewEl, fileNameEl) {
   if (!file) {
     previewEl.removeAttribute('src');
     previewEl.classList.remove('is-visible');
+    fileNameEl.textContent = 'No file selected';
     return;
   }
 
   const url = URL.createObjectURL(file);
   previewEl.src = url;
   previewEl.classList.add('is-visible');
+  fileNameEl.textContent = file.name;
   previewEl.onload = () => URL.revokeObjectURL(url);
 }
 
@@ -88,7 +91,7 @@ function createCard(initialData = {}) {
   el.postTime.value = initialData.postTime ?? '';
 
   el.imageInput.addEventListener('change', () => {
-    setPreview(el.imageInput.files[0], el.preview);
+    setPreview(el.imageInput.files[0], el.preview, el.fileName);
   });
 
   el.removeBtn.addEventListener('click', () => {
@@ -120,24 +123,31 @@ function getCardsPayload() {
   });
 }
 
+function countWordHits(text, words) {
+  return words.reduce((sum, word) => (text.includes(word) ? sum + 1 : sum), 0);
+}
+
 function scoreHookQuality(caption) {
   const text = caption.toLowerCase();
-  const lengthScore = caption.length > 140 ? 2 : caption.length > 70 ? 1.5 : 1;
-  const questionScore = text.includes('?') ? 2 : 0;
-  const numberScore = /\d/.test(text) ? 1.2 : 0;
-  const keywordScore = HOOK_WORDS.reduce((sum, word) => (text.includes(word) ? sum + 0.7 : sum), 0);
-  const emojiScore = /[\u{1F300}-\u{1FAFF}]/u.test(text) ? 0.8 : 0;
+  const questionScore = text.includes('?') ? 1.8 : 0;
+  const numberScore = /\d/.test(text) ? 1.1 : 0;
+  const keywordScore = countWordHits(text, HOOK_WORDS) * 0.65;
+  const toneScore = countWordHits(text, POWER_TONES) * 0.4;
+  const lengthSweetSpot = caption.length >= 80 && caption.length <= 220 ? 1.5 : 0.8;
+  const patternBreak = /(^|\s)(you|your|we|imagine|what if)(\s|,|\?)/.test(text) ? 0.8 : 0;
 
-  return Math.min(10, Math.max(1, Math.round((lengthScore + questionScore + numberScore + keywordScore + emojiScore) * 10) / 10));
+  const raw = lengthSweetSpot + questionScore + numberScore + keywordScore + toneScore + patternBreak;
+  return Math.min(10, Math.max(1, Math.round(raw * 10) / 10));
 }
 
 function scoreCtaStrength(caption) {
   const text = caption.toLowerCase();
-  const ctaHits = CTA_WORDS.reduce((sum, word) => (text.includes(word) ? sum + 1 : sum), 0);
-  const exclamationBoost = text.includes('!') ? 0.6 : 0;
-  const directAddressBoost = text.includes('you') || text.includes('your') ? 0.6 : 0;
+  const ctaHits = countWordHits(text, CTA_WORDS);
+  const directiveBoost = /(do this|try this|save this|comment below|dm me|tap)/.test(text) ? 1 : 0;
+  const urgencyBoost = /(today|now|this week|don’t miss|limited)/.test(text) ? 0.7 : 0;
+  const clarityBoost = /(for|to get|to learn|so you can)/.test(text) ? 0.6 : 0;
 
-  const score = 1 + ctaHits * 1.4 + exclamationBoost + directAddressBoost;
+  const score = 1.2 + ctaHits * 1.2 + directiveBoost + urgencyBoost + clarityBoost;
   return Math.min(10, Math.round(score * 10) / 10);
 }
 
@@ -182,7 +192,6 @@ async function analyzeImage(file) {
     const r = data[i];
     const g = data[i + 1];
     const b = data[i + 2];
-
     brightnessTotal += (r + g + b) / 3;
     colorfulnessTotal += Math.abs(r - g) + Math.abs((r + g) / 2 - b);
   }
@@ -205,8 +214,9 @@ async function enrichPosts(rawPosts) {
     const ctaStrength = scoreCtaStrength(post.caption);
     const engagementRate = post.impressions > 0 ? (post.engagements / post.impressions) * 100 : 0;
     const interactionRate = post.impressions > 0 ? ((post.likes + post.comments) / post.impressions) * 100 : 0;
+    const commentsToLikes = post.likes > 0 ? post.comments / post.likes : 0;
 
-    const performanceScore = engagementRate * 0.55 + interactionRate * 0.25 + hookQuality * 1.3 + ctaStrength * 1.2;
+    const performanceScore = engagementRate * 0.5 + interactionRate * 0.25 + hookQuality * 1.4 + ctaStrength * 1.35;
 
     return {
       ...post,
@@ -214,6 +224,7 @@ async function enrichPosts(rawPosts) {
       ctaStrength,
       engagementRate,
       interactionRate,
+      commentsToLikes,
       performanceScore,
       dayPart: detectDayPart(post.postTime),
       visual: visuals[index],
@@ -223,26 +234,52 @@ async function enrichPosts(rawPosts) {
 
 function summarizeVisualDifference(topPost, bottomPost) {
   if (!topPost.visual || !bottomPost.visual) {
-    return 'I could not compare both visuals yet. Upload images for each post and I’ll analyze brightness, color depth, and composition style too.';
+    return 'I can already compare copy and performance trends, and if you upload images for each post I can also critique visual style shifts.';
   }
 
   const notes = [];
 
   if (topPost.visual.brightness - bottomPost.visual.brightness > 10) {
-    notes.push('the winning creative is brighter, which typically improves feed-level scannability');
+    notes.push('the winner is visibly brighter, which usually reads cleaner in the first 0.5 seconds of feed scanning');
   }
   if (topPost.visual.colorfulness - bottomPost.visual.colorfulness > 8) {
-    notes.push('its color contrast appears stronger, which can increase thumb-stop rate');
+    notes.push('its color contrast is more assertive, likely giving it stronger thumb-stop energy');
   }
   if (Math.abs(topPost.visual.aspectRatio - bottomPost.visual.aspectRatio) > 0.12) {
-    notes.push('it uses a different composition ratio, which may have impacted platform presentation');
+    notes.push('it uses a different framing ratio, which can materially change composition and on-platform presentation');
   }
 
   if (!notes.length) {
-    return 'Visually, both posts are pretty similar, so copy clarity and timing likely drove the bigger performance differences.';
+    return 'Creatively, the visuals are in a similar family, so your biggest lift came from copy direction and timing rather than design alone.';
   }
 
-  return `From a visual standpoint, ${notes.join(', ')}.`;
+  return `Visually, ${notes.join(', ')}.`;
+}
+
+function getCreativeCritique(post) {
+  const notes = [];
+
+  if (post.hookQuality >= 8.5) {
+    notes.push('opens with a high-friction hook that earns attention quickly');
+  } else if (post.hookQuality <= 4.5) {
+    notes.push('starts softly and likely needs a sharper first-line tension point');
+  }
+
+  if (post.ctaStrength >= 8) {
+    notes.push('uses clear conversion language that tells the audience exactly what to do next');
+  } else if (post.ctaStrength <= 4.5) {
+    notes.push('has a passive CTA tone, so intent is probably leaking before action');
+  }
+
+  if (post.commentsToLikes > 0.22) {
+    notes.push('creates above-average conversation depth, which suggests polarizing or high-relevance messaging');
+  }
+
+  if (post.dayPart === 'evening' || post.dayPart === 'afternoon') {
+    notes.push(`was published in the ${post.dayPart}, which is often favorable for dwell time`);
+  }
+
+  return notes.length ? notes.join('; ') : 'shows balanced performance characteristics without one dominant creative signal.';
 }
 
 function renderMetrics(posts) {
@@ -261,7 +298,7 @@ function renderMetrics(posts) {
           (post) => `<article class="metric-tile metric-up">
             <h3>Post ${post.id}</h3>
             <p>${post.performanceScore.toFixed(1)}</p>
-            <small>Engagement rate ${formatPercent(post.engagementRate)}</small>
+            <small>Engagement ${formatPercent(post.engagementRate)} · Hook ${post.hookQuality}/10 · CTA ${post.ctaStrength}/10</small>
           </article>`
         )
         .join('')}
@@ -272,49 +309,50 @@ function renderMetrics(posts) {
 function renderConversation(posts) {
   const ranked = [...posts].sort((a, b) => b.performanceScore - a.performanceScore);
   const winner = ranked[0];
+  const runnerUp = ranked[1];
   const lowest = ranked[ranked.length - 1];
+  const spread = winner.performanceScore - lowest.performanceScore;
 
   const message = `
-    <p><strong>Here’s the quick read:</strong> Post ${winner.id} is your strongest performer right now. It has a ${formatPercent(
+    <p><strong>Quick diagnosis:</strong> Post ${winner.id} is leading with a ${formatPercent(
       winner.engagementRate
-    )} engagement rate, with an AI-estimated hook score of ${winner.hookQuality}/10 and CTA strength of ${winner.ctaStrength}/10.</p>
-    <p>Compared with Post ${lowest.id}, the biggest lift appears to come from better caption structure and clearer action language. ${summarizeVisualDifference(
-      winner,
-      lowest
-    )}</p>
-    <p>If you want, keep using this winning caption pattern on ${sentenceCase(winner.platform || 'your platform')} ${winner.postType || 'posts'} during the ${
-    winner.dayPart
-  } window.</p>
+    )} engagement rate and the strongest creative signature in this set.</p>
+    <p>The gap versus Post ${lowest.id} is <strong>${spread.toFixed(1)} score points</strong>. In plain terms, the winner combines better hook architecture, clearer action language, and stronger audience response momentum.</p>
+    <p><strong>Creative read on Post ${winner.id}:</strong> ${escapeHtml(getCreativeCritique(winner))}.</p>
+    <p><strong>Compared with Post ${runnerUp.id}:</strong> your top two are close, but Post ${winner.id} edges ahead because its conversion language is sharper and the interaction profile is healthier.</p>
+    <p>${escapeHtml(summarizeVisualDifference(winner, lowest))}</p>
   `;
 
   conversation.innerHTML = `<strong>Conversational AI summary</strong>${message}`;
 }
 
 function renderComparison(posts) {
-  const rows = posts
+  const rows = [...posts]
     .sort((a, b) => b.performanceScore - a.performanceScore)
     .map(
       (post) => `<li>
-        <strong>Post ${post.id}</strong> (${escapeHtml(post.postType || 'Unknown type')}, ${escapeHtml(post.platform || 'Unknown platform')}) — 
+        <strong>Post ${post.id}</strong> (${escapeHtml(post.postType || 'Unknown type')}, ${escapeHtml(post.platform || 'Unknown platform')}) —
         Score ${post.performanceScore.toFixed(1)} | Engagement ${formatPercent(post.engagementRate)} | Hook ${post.hookQuality}/10 | CTA ${post.ctaStrength}/10
+        <br /><span class="row-critique">Critique: ${escapeHtml(getCreativeCritique(post))}.</span>
       </li>`
     )
     .join('');
 
-  comparison.innerHTML = `<strong>Post-by-post comparison</strong><ul>${rows}</ul>`;
+  comparison.innerHTML = `<strong>Post-by-post creative comparison</strong><ul>${rows}</ul>`;
 }
 
 function renderRecommendations(posts) {
   const ranked = [...posts].sort((a, b) => b.performanceScore - a.performanceScore);
   const top = ranked[0];
+  const bottom = ranked[ranked.length - 1];
 
   recommendations.innerHTML = `
     <strong>What I’d do next</strong>
     <ul>
-      <li>Clone Post ${top.id}'s opening style and publish 3 variants this week with different first lines.</li>
-      <li>Keep CTA wording direct (e.g., “save this”, “comment your take”, “DM for details”) and benchmark uplift.</li>
-      <li>Post your priority content in the <strong>${top.dayPart}</strong> time window until new data suggests otherwise.</li>
-      <li>Build a simple content scorecard: hook quality, CTA strength, engagement rate, and saves/comments trend over time.</li>
+      <li>Build a 3-post mini-series from Post ${top.id}'s opening style. Keep the same promise angle, but vary proof format (stat, story, checklist).</li>
+      <li>Rewrite Post ${bottom.id} with a contrast-based first line ("Most people do X. Here’s why that fails.") and one explicit CTA in the final sentence.</li>
+      <li>A/B test two CTA endings this week: one community CTA ("comment") vs one retention CTA ("save this").</li>
+      <li>For the next cycle, track comments-to-likes ratio as a quality signal, not just total engagements.</li>
     </ul>
   `;
 }
@@ -349,13 +387,13 @@ function loadExamples() {
 
   const samplePosts = [
     {
-      caption: 'Struggling to hire fast? 3 things we changed this month that boosted applicant quality. Save this checklist.',
+      caption: 'Most hiring posts fail because they open with role details instead of emotional tension. Here are 3 fixes. Save this and try one today.',
       platform: 'Instagram',
       postType: 'Carousel',
-      likes: 240,
-      comments: 33,
-      impressions: 8200,
-      engagements: 412,
+      likes: 286,
+      comments: 41,
+      impressions: 8600,
+      engagements: 470,
       postDate: '2026-02-03',
       postTime: '18:35',
     },
@@ -371,13 +409,13 @@ function loadExamples() {
       postTime: '09:10',
     },
     {
-      caption: 'Before you post job ads again, stop and fix these 2 mistakes. Comment "guide" and I\'ll DM the template.',
+      caption: 'Before you post another ad, stop. Comment "guide" and I will DM the exact structure that doubled applicant quality for us.',
       platform: 'LinkedIn',
       postType: 'Text',
-      likes: 134,
-      comments: 27,
+      likes: 154,
+      comments: 31,
       impressions: 6400,
-      engagements: 286,
+      engagements: 302,
       postDate: '2026-02-05',
       postTime: '14:20',
     },

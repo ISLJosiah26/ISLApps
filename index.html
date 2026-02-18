@@ -47,10 +47,14 @@
           <button type="button" class="remove-btn" data-remove>Remove</button>
         </div>
 
-        <label>
-          Upload post creative
-          <input type="file" data-field="image" accept="image/*" />
-        </label>
+        <div class="upload-group">
+          <span class="field-label">Upload post creative</span>
+          <label class="upload-shell">
+            <input type="file" data-field="image" accept="image/*" />
+            <span class="upload-btn">Choose image</span>
+            <span class="upload-name" data-file-name>No file selected</span>
+          </label>
+        </div>
         <img class="thumb" data-preview alt="Post creative preview" />
 
         <label>
