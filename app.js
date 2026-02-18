@@ -1,265 +1,349 @@
-const form = document.getElementById('ad-form');
-const jobTitleInput = document.getElementById('jobTitle');
-const locationInput = document.getElementById('location');
-const contactInput = document.getElementById('contactName');
-const orientationSelect = document.getElementById('orientationSelect');
-const downloadBtn = document.getElementById('downloadBtn');
-const canvas = document.getElementById('adCanvas');
-const ctx = canvas.getContext('2d');
+const form = document.getElementById('analysis-form');
+const loadExampleBtn = document.getElementById('loadExampleBtn');
+const scoreCard = document.getElementById('scoreCard');
+const visualInsights = document.getElementById('visualInsights');
+const insights = document.getElementById('insights');
+const recommendations = document.getElementById('recommendations');
 
-const brand = {
-  company: 'INTEGRATED\nSTAFFING',
-  website: 'integratedstaffing.ca',
-  fontFamily: "'Gotham', 'Avenir Next', 'Montserrat', Arial, sans-serif",
-  colours: {
-    blue: '#0f63b6',
-    white: '#ffffff',
-    line: 'rgba(98, 166, 230, 0.36)',
-    pill: '#e7e7ea',
-    textOnBlue: '#f7f9ff',
-    textBlue: '#0f5ea9',
-  },
+const fields = {
+  lowPlatform: document.getElementById('lowPlatform'),
+  lowContentType: document.getElementById('lowContentType'),
+  lowPostingTime: document.getElementById('lowPostingTime'),
+  lowHookScore: document.getElementById('lowHookScore'),
+  lowCtaScore: document.getElementById('lowCtaScore'),
+  lowEngagement: document.getElementById('lowEngagement'),
+  lowReach: document.getElementById('lowReach'),
+  lowSaves: document.getElementById('lowSaves'),
+  lowImage: document.getElementById('lowImage'),
+  lowImagePreview: document.getElementById('lowImagePreview'),
+  highPlatform: document.getElementById('highPlatform'),
+  highContentType: document.getElementById('highContentType'),
+  highPostingTime: document.getElementById('highPostingTime'),
+  highHookScore: document.getElementById('highHookScore'),
+  highCtaScore: document.getElementById('highCtaScore'),
+  highEngagement: document.getElementById('highEngagement'),
+  highReach: document.getElementById('highReach'),
+  highSaves: document.getElementById('highSaves'),
+  highImage: document.getElementById('highImage'),
+  highImagePreview: document.getElementById('highImagePreview'),
 };
 
-const sizes = {
-  portrait: { width: 1080, height: 1350 },
-  landscape: { width: 1200, height: 628 },
+const exampleData = {
+  lowPlatform: 'Instagram',
+  lowContentType: 'Image',
+  lowPostingTime: 'Tuesday morning',
+  lowHookScore: 4,
+  lowCtaScore: 3,
+  lowEngagement: 1.2,
+  lowReach: 3200,
+  lowSaves: 18,
+  highPlatform: 'Instagram',
+  highContentType: 'Carousel',
+  highPostingTime: 'Thursday evening',
+  highHookScore: 8,
+  highCtaScore: 8,
+  highEngagement: 4.8,
+  highReach: 14900,
+  highSaves: 264,
 };
 
-function setCanvasSize() {
-  const orientation = orientationSelect.value;
-  const dimension = sizes[orientation] ?? sizes.portrait;
-  canvas.width = dimension.width;
-  canvas.height = dimension.height;
+function toNumber(input) {
+  return Number.parseFloat(input) || 0;
 }
 
-function wrapText(text, maxWidth, lineHeight, x, y, align = 'left') {
-  const words = text.split(' ');
-  let line = words[0] ?? '';
-  const lines = [];
-
-  for (let i = 1; i < words.length; i += 1) {
-    const test = `${line} ${words[i]}`;
-    if (ctx.measureText(test).width <= maxWidth) {
-      line = test;
-    } else {
-      lines.push(line);
-      line = words[i];
-    }
+function safeLift(low, high) {
+  if (low === 0 && high > 0) {
+    return 100;
   }
-  lines.push(line);
+  if (low === 0) {
+    return 0;
+  }
+  return ((high - low) / low) * 100;
+}
 
-  ctx.textAlign = align;
-  lines.forEach((entry, index) => {
-    ctx.fillText(entry, x, y + index * lineHeight);
+function classifyLift(percent) {
+  if (percent >= 75) return 'major';
+  if (percent >= 25) return 'moderate';
+  return 'small';
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function getPayload() {
+  return {
+    low: {
+      platform: fields.lowPlatform.value.trim(),
+      contentType: fields.lowContentType.value,
+      postingTime: fields.lowPostingTime.value.trim(),
+      hookScore: toNumber(fields.lowHookScore.value),
+      ctaScore: toNumber(fields.lowCtaScore.value),
+      engagement: toNumber(fields.lowEngagement.value),
+      reach: toNumber(fields.lowReach.value),
+      saves: toNumber(fields.lowSaves.value),
+    },
+    high: {
+      platform: fields.highPlatform.value.trim(),
+      contentType: fields.highContentType.value,
+      postingTime: fields.highPostingTime.value.trim(),
+      hookScore: toNumber(fields.highHookScore.value),
+      ctaScore: toNumber(fields.highCtaScore.value),
+      engagement: toNumber(fields.highEngagement.value),
+      reach: toNumber(fields.highReach.value),
+      saves: toNumber(fields.highSaves.value),
+    },
+  };
+}
+
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
   });
-  return y + (lines.length - 1) * lineHeight;
 }
 
-function drawBackground(w, h) {
-  ctx.fillStyle = brand.colours.blue;
-  ctx.fillRect(0, 0, w, h);
-
-  ctx.strokeStyle = brand.colours.line;
-  ctx.lineWidth = Math.max(2, w * 0.004);
-
-  for (let i = -2; i < 16; i += 1) {
-    ctx.beginPath();
-    const waveY = h * (0.18 + i * 0.045);
-    ctx.moveTo(-w * 0.2, waveY);
-    for (let x = -w * 0.2; x <= w * 1.2; x += 20) {
-      const y = waveY + Math.sin((x / w) * Math.PI * 2 + i * 0.3) * (h * 0.06) + ((x - w * 0.5) ** 2 / (w * w)) * (h * 0.2);
-      ctx.lineTo(x, y);
-    }
-    ctx.stroke();
+async function analyzeImage(file) {
+  if (!file) {
+    return null;
   }
+
+  const img = await loadImage(file);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  const maxSide = 240;
+  const scale = Math.min(maxSide / img.width, maxSide / img.height, 1);
+  canvas.width = Math.max(1, Math.round(img.width * scale));
+  canvas.height = Math.max(1, Math.round(img.height * scale));
+
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+  let totalBrightness = 0;
+  let colorfulness = 0;
+  let edgeWeight = 0;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+
+    const brightness = (r + g + b) / 3;
+    totalBrightness += brightness;
+
+    const rg = Math.abs(r - g);
+    const yb = Math.abs((r + g) * 0.5 - b);
+    colorfulness += rg + yb;
+
+    if (i >= 4) {
+      const prevR = data[i - 4];
+      const prevG = data[i - 3];
+      const prevB = data[i - 2];
+      edgeWeight += Math.abs(r - prevR) + Math.abs(g - prevG) + Math.abs(b - prevB);
+    }
+  }
+
+  const pixels = data.length / 4;
+  const avgBrightness = totalBrightness / pixels;
+  const avgColorfulness = colorfulness / pixels;
+  const edgeDensity = edgeWeight / pixels;
+
+  URL.revokeObjectURL(img.src);
+
+  return {
+    brightness: avgBrightness,
+    colorfulness: avgColorfulness,
+    edgeDensity,
+    ratio: canvas.width / canvas.height,
+  };
 }
 
-function drawLogo(w, h, orientation) {
-  ctx.fillStyle = brand.colours.white;
-  ctx.textAlign = 'right';
-  ctx.font = `700 ${Math.round(w * (orientation === 'portrait' ? 0.06 : 0.05))}px ${brand.fontFamily}`;
-  const anchorX = w * 0.89;
-  const topY = h * 0.13;
-  ctx.fillText('INTEGRATED', anchorX, topY);
-  ctx.font = `700 ${Math.round(w * (orientation === 'portrait' ? 0.036 : 0.03))}px ${brand.fontFamily}`;
-  ctx.fillText('STAFFING', anchorX, topY + h * 0.05);
+function visualSummary(lowVisual, highVisual) {
+  if (!lowVisual || !highVisual) {
+    return ['Upload both post images to unlock visual AI analysis.'];
+  }
 
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = brand.colours.white;
-  ctx.beginPath();
-  ctx.moveTo(anchorX - w * 0.19, topY - h * 0.01);
-  ctx.lineTo(anchorX - w * 0.03, topY - h * 0.01);
-  ctx.stroke();
+  const points = [];
+
+  if (highVisual.brightness - lowVisual.brightness > 12) {
+    points.push('The high performer is notably brighter, suggesting clearer focal hierarchy and stronger feed visibility.');
+  }
+
+  if (highVisual.colorfulness - lowVisual.colorfulness > 10) {
+    points.push('The high performer uses richer color contrast, which likely increased thumb-stop impact.');
+  }
+
+  if (highVisual.edgeDensity - lowVisual.edgeDensity > 8) {
+    points.push('The high performer has more structural detail/edges, indicating denser visual storytelling.');
+  }
+
+  if (Math.abs(highVisual.ratio - lowVisual.ratio) > 0.12) {
+    points.push('Aspect ratio differs between creatives; composition format may have influenced platform distribution and attention.');
+  }
+
+  if (!points.length) {
+    points.push('Visual signatures are similar; copy quality, offer clarity, and timing likely drove most of the gap.');
+  }
+
+  return points;
 }
 
-function drawPortrait(data) {
-  const w = canvas.width;
-  const h = canvas.height;
-  drawBackground(w, h);
-  drawLogo(w, h, 'portrait');
+function analyze(payload, visuals) {
+  const engagementLift = safeLift(payload.low.engagement, payload.high.engagement);
+  const reachLift = safeLift(payload.low.reach, payload.high.reach);
+  const saveLift = safeLift(payload.low.saves, payload.high.saves);
+  const hookDelta = payload.high.hookScore - payload.low.hookScore;
+  const ctaDelta = payload.high.ctaScore - payload.low.ctaScore;
 
-  ctx.fillStyle = brand.colours.textOnBlue;
-  ctx.textAlign = 'left';
-  ctx.font = `300 ${Math.round(w * 0.052)}px ${brand.fontFamily}`;
-  ctx.fillText("WE'RE HIRING!", w * 0.1, h * 0.43);
+  const signalScore = [engagementLift, reachLift, saveLift].reduce((sum, value) => sum + Math.max(0, value), 0) / 3;
+  const confidence = signalScore > 160 ? 'High confidence' : signalScore > 60 ? 'Medium confidence' : 'Low confidence';
 
-  ctx.font = `700 ${Math.round(w * 0.058)}px ${brand.fontFamily}`;
-  const titleY = wrapText(data.jobTitle.toUpperCase(), w * 0.8, h * 0.063, w * 0.1, h * 0.515);
+  const conclusions = [];
 
-  ctx.strokeStyle = brand.colours.white;
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(w * 0.1, titleY + h * 0.04);
-  ctx.lineTo(w * 0.9, titleY + h * 0.04);
-  ctx.stroke();
+  if (payload.low.platform && payload.high.platform && payload.low.platform !== payload.high.platform) {
+    conclusions.push(`Different platforms (${payload.low.platform} vs ${payload.high.platform}) likely contributed to part of the gap.`);
+  }
 
-  ctx.font = `500 ${Math.round(w * 0.047)}px ${brand.fontFamily}`;
-  ctx.fillText(`⚙ Direct-hire`, w * 0.1, titleY + h * 0.095);
-  ctx.textAlign = 'right';
-  ctx.fillText(`📍 ${data.location}`, w * 0.9, titleY + h * 0.095);
+  if (payload.low.contentType !== payload.high.contentType) {
+    conclusions.push(
+      `${payload.high.contentType} appears to outperform ${payload.low.contentType.toLowerCase()} in this sample via stronger interaction potential.`
+    );
+  }
 
-  const pillX = w * 0.1;
-  const pillY = h * 0.84;
-  const pillW = w * 0.8;
-  const pillH = h * 0.08;
-  roundRect(pillX, pillY, pillW, pillH, pillH / 2, brand.colours.pill);
+  if (payload.low.postingTime !== payload.high.postingTime) {
+    conclusions.push(`The ${payload.high.postingTime.toLowerCase()} slot likely aligned better with audience activity than ${payload.low.postingTime.toLowerCase()}.`);
+  }
 
-  drawContactCircle(pillX + pillH / 2, pillY + pillH / 2, pillH * 0.42);
+  if (hookDelta >= 2) {
+    conclusions.push(`Hook quality rose from ${payload.low.hookScore}/10 to ${payload.high.hookScore}/10, likely improving scroll-stop and initial attention.`);
+  }
 
-  ctx.fillStyle = brand.colours.textBlue;
-  ctx.textAlign = 'left';
-  ctx.font = `500 ${Math.round(w * 0.036)}px ${brand.fontFamily}`;
-  wrapText(
-    `Apply online today, or connect with ${data.contactName} for more details at: ${brand.website}`,
-    pillW - pillH * 1.3,
-    h * 0.032,
-    pillX + pillH,
-    pillY + pillH * 0.38
-  );
+  if (ctaDelta >= 2) {
+    conclusions.push(`CTA clarity improved from ${payload.low.ctaScore}/10 to ${payload.high.ctaScore}/10, likely lifting saves/shares intent.`);
+  }
+
+  if (!conclusions.length) {
+    conclusions.push('No major qualitative differences were detected, so execution consistency should be tested across more posts.');
+  }
+
+  const recommendationList = [
+    `Prioritize ${payload.high.contentType.toLowerCase()} formats in your next 2-week content sprint.`,
+    `Keep posting in the ${payload.high.postingTime} window for priority campaigns.`,
+    'Adopt a reusable hook framework: pain point + promised outcome + proof cue.',
+    'Use one clear CTA and benchmark saves/shares as your intent KPI.',
+  ];
+
+  if (classifyLift(engagementLift) === 'major') {
+    recommendationList.push('Turn the winning concept into a creative family (carousel, short video, story) for compounding reach.');
+  }
+
+  return {
+    engagementLift,
+    reachLift,
+    saveLift,
+    confidence,
+    visualPoints: visualSummary(visuals.low, visuals.high),
+    conclusions,
+    recommendationList,
+  };
 }
 
-function drawLandscape(data) {
-  const w = canvas.width;
-  const h = canvas.height;
-  drawBackground(w, h);
-  drawLogo(w, h, 'landscape');
-
-  ctx.fillStyle = brand.colours.textOnBlue;
-  ctx.textAlign = 'left';
-  ctx.font = `300 ${Math.round(h * 0.1)}px ${brand.fontFamily}`;
-  ctx.fillText("WE'RE HIRING!", w * 0.06, h * 0.23);
-
-  ctx.font = `700 ${Math.round(h * 0.1)}px ${brand.fontFamily}`;
-  const titleY = wrapText(data.jobTitle.toUpperCase(), w * 0.46, h * 0.11, w * 0.06, h * 0.38);
-
-  ctx.strokeStyle = brand.colours.white;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(w * 0.06, titleY + h * 0.05);
-  ctx.lineTo(w * 0.52, titleY + h * 0.05);
-  ctx.stroke();
-
-  ctx.font = `500 ${Math.round(h * 0.065)}px ${brand.fontFamily}`;
-  ctx.fillText(`⚙ Direct-hire`, w * 0.06, titleY + h * 0.13);
-  ctx.fillText(`📍 ${data.location}`, w * 0.33, titleY + h * 0.13);
-
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  ctx.arc(w * 0.87, h * 0.78, h * 0.45, 0, Math.PI * 2);
-  ctx.fill();
-
-  const imageGradient = ctx.createLinearGradient(w * 0.67, h * 0.32, w, h);
-  imageGradient.addColorStop(0, '#f8efe9');
-  imageGradient.addColorStop(1, '#e57a3e');
-  ctx.fillStyle = imageGradient;
-  ctx.beginPath();
-  ctx.arc(w * 0.87, h * 0.78, h * 0.425, 0, Math.PI * 2);
-  ctx.fill();
-
-  const pillX = w * 0.055;
-  const pillY = h * 0.81;
-  const pillW = w * 0.46;
-  const pillH = h * 0.14;
-  roundRect(pillX, pillY, pillW, pillH, pillH / 2, brand.colours.pill);
-
-  drawContactCircle(pillX + pillH / 2, pillY + pillH / 2, pillH * 0.38);
-
-  ctx.fillStyle = brand.colours.textBlue;
-  ctx.textAlign = 'left';
-  ctx.font = `500 ${Math.round(h * 0.055)}px ${brand.fontFamily}`;
-  wrapText(
-    `Apply online today, or connect with ${data.contactName} at: ${brand.website}`,
-    pillW - pillH * 1.4,
-    h * 0.056,
-    pillX + pillH,
-    pillY + pillH * 0.42
-  );
+function liftClass(value) {
+  return value >= 0 ? 'metric-up' : 'metric-warn';
 }
 
-function roundRect(x, y, width, height, radius, fill) {
-  ctx.fillStyle = fill;
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.arcTo(x + width, y, x + width, y + height, radius);
-  ctx.arcTo(x + width, y + height, x, y + height, radius);
-  ctx.arcTo(x, y + height, x, y, radius);
-  ctx.arcTo(x, y, x + width, y, radius);
-  ctx.closePath();
-  ctx.fill();
+function renderMetric(label, value) {
+  return `<article class="metric-tile ${liftClass(value)}"><h3>${escapeHtml(label)}</h3><p>${value.toFixed(1)}%</p></article>`;
 }
 
-function drawContactCircle(cx, cy, radius) {
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-  ctx.fill();
+function render(result) {
+  scoreCard.innerHTML = `
+    <div class="score-header">
+      <strong>Performance delta</strong>
+      <span class="confidence-pill">${escapeHtml(result.confidence)}</span>
+    </div>
+    <div class="metric-grid">
+      ${renderMetric('Engagement lift', result.engagementLift)}
+      ${renderMetric('Reach lift', result.reachLift)}
+      ${renderMetric('Saves/Shares lift', result.saveLift)}
+    </div>
+  `;
 
-  const grad = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius, cy + radius);
-  grad.addColorStop(0, '#7c8b9c');
-  grad.addColorStop(1, '#d8b89a');
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius * 0.86, 0, Math.PI * 2);
-  ctx.fill();
+  visualInsights.innerHTML = `
+    <strong>Visual AI signals</strong>
+    <ul>${result.visualPoints.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+  `;
+
+  insights.innerHTML = `
+    <strong>Why the high-performing post won</strong>
+    <ul>${result.conclusions.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+  `;
+
+  recommendations.innerHTML = `
+    <strong>What to do next</strong>
+    <ul>${result.recommendationList.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+  `;
 }
 
-function render() {
-  setCanvasSize();
-  const data = {
-    jobTitle: jobTitleInput.value.trim() || 'Job Title',
-    location: locationInput.value.trim() || 'Location',
-    contactName: contactInput.value.trim() || 'Contact Name',
+function setPreview(file, target) {
+  if (!file) {
+    target.removeAttribute('src');
+    target.classList.remove('is-visible');
+    return;
+  }
+
+  const url = URL.createObjectURL(file);
+  target.src = url;
+  target.classList.add('is-visible');
+  target.onload = () => URL.revokeObjectURL(url);
+}
+
+async function runAnalysis() {
+  const payload = getPayload();
+  const visuals = {
+    low: await analyzeImage(fields.lowImage.files[0]),
+    high: await analyzeImage(fields.highImage.files[0]),
   };
 
-  if (orientationSelect.value === 'landscape') {
-    drawLandscape(data);
-  } else {
-    drawPortrait(data);
-  }
+  render(analyze(payload, visuals));
 }
 
-form.addEventListener('submit', (event) => {
+function loadExampleData() {
+  Object.entries(exampleData).forEach(([key, value]) => {
+    fields[key].value = value;
+  });
+
+  runAnalysis();
+}
+
+fields.lowImage.addEventListener('change', () => {
+  setPreview(fields.lowImage.files[0], fields.lowImagePreview);
+  runAnalysis();
+});
+
+fields.highImage.addEventListener('change', () => {
+  setPreview(fields.highImage.files[0], fields.highImagePreview);
+  runAnalysis();
+});
+
+form.addEventListener('submit', async (event) => {
   event.preventDefault();
-  render();
+  await runAnalysis();
 });
 
-[jobTitleInput, locationInput, contactInput, orientationSelect].forEach((field) => {
-  field.addEventListener('input', render);
-  field.addEventListener('change', render);
-});
+loadExampleBtn.addEventListener('click', loadExampleData);
 
-downloadBtn.addEventListener('click', () => {
-  render();
-  const safeTitle = (jobTitleInput.value.trim() || 'job-ad').toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  const link = document.createElement('a');
-  link.download = `${safeTitle}-${orientationSelect.value}.png`;
-  link.href = canvas.toDataURL('image/png');
-  link.click();
-});
+scoreCard.innerHTML = '<div class="empty-state">Submit post data to calculate performance lift.</div>';
+visualInsights.innerHTML = '<div class="empty-state">Upload post creatives to generate visual intelligence.</div>';
+insights.innerHTML = '<div class="empty-state">Conclusions will appear here after analysis.</div>';
+recommendations.innerHTML = '<div class="empty-state">Actionable recommendations will appear here.</div>';
 
-jobTitleInput.value = 'Inventory & Warehouse Coordinator';
-locationInput.value = 'Dartmouth, NS';
-contactInput.value = 'Lisa Laviolette';
-orientationSelect.value = 'portrait';
-render();
+loadExampleData();

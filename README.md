@@ -1,32 +1,31 @@
-# Recruitment Social Ad Generator
+# Social Post Intelligence (Apple-style UI)
 
-A simple web app to generate branded recruitment post graphics in **portrait** or **landscape** PNG format.
+A sleek, modern web app to compare low-performing and high-performing social posts and generate AI-style conclusions for why one outperformed the other.
 
-## Features
+## Highlights
 
-- Enter only:
-  - Job title
-  - Location
-  - Contact name
-- Select orientation:
-  - Portrait (1080x1350)
-  - Landscape (1200x628)
-- Export as PNG in one click.
-- Styling and canvas text are configured to use **Gotham** font (with fallbacks if Gotham is unavailable on the machine).
-- Layout follows the supplied blue wave Integrated Staffing-style format.
+- Apple-inspired glassmorphism UI with clean spacing, soft gradients, and modern cards.
+- Side-by-side post comparison inputs:
+  - Platform, content type, posting time
+  - Hook quality, CTA strength
+  - Engagement %, reach, saves/shares
+- **Visual upload analysis** for each post creative:
+  - Upload low-performing and high-performing post images
+  - Auto-preview each creative
+  - Heuristic visual signals (brightness, colorfulness, edge/detail density, aspect ratio)
+- AI-style output sections:
+  - Performance lift metrics
+  - Confidence level
+  - Visual AI signals
+  - Why the high-performing post likely won
+  - Actionable next-step recommendations
 
 ## Usage
 
-1. Open `index.html` in a browser.
-2. Fill in the three fields.
-3. Select portrait or landscape.
-4. Click **Download PNG**.
+1. Open `index.html` in your browser.
+2. Fill low/high post metrics.
+3. (Optional) Upload both post creatives to enable visual analysis.
+4. Click **Analyze Posts**.
+5. Review generated insights and recommendations.
 
-## Customisation
-
-Update these in `app.js`:
-
-- `brand.company`
-- `brand.website`
-- `brand.colours`
-- `sizes` for output dimensions
+Use **Load Example Data** to quickly test the analyzer flow.
