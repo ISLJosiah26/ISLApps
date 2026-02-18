@@ -5,15 +5,16 @@
 }
 
 :root {
-  --bg: #f5f7fb;
-  --panel: #ffffff;
-  --line: #e6ebf3;
-  --text: #111318;
-  --muted: #667089;
+  --bg: #edf2fb;
+  --panel: rgba(255, 255, 255, 0.62);
+  --line: rgba(255, 255, 255, 0.78);
+  --line-strong: rgba(190, 204, 230, 0.42);
+  --text: #121722;
+  --muted: #67728e;
   --brand: #0a84ff;
-  --brand-soft: #eef5ff;
+  --brand-soft: rgba(10, 132, 255, 0.1);
   --success: #0e9f6e;
-  --success-bg: #effbf5;
+  --success-bg: rgba(14, 159, 110, 0.1);
 }
 
 * {
@@ -25,7 +26,7 @@ body {
   min-height: 100vh;
   font-family: 'Gotham', 'Avenir Next', 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   font-weight: 300;
-  background: var(--bg);
+  background: radial-gradient(circle at 15% 12%, #ffffff 0%, #eef3ff 42%, #dde7fb 100%);
   color: var(--text);
 }
 
@@ -40,8 +41,11 @@ body {
 .panel {
   background: var(--panel);
   border: 1px solid var(--line);
+  backdrop-filter: blur(22px) saturate(135%);
+  -webkit-backdrop-filter: blur(22px) saturate(135%);
   border-radius: 20px;
   padding: 1rem;
+  box-shadow: 0 18px 42px rgba(15, 28, 56, 0.14);
 }
 
 .panel-head {
@@ -88,10 +92,10 @@ input,
 select,
 textarea {
   font: inherit;
-  border: 1px solid #d8dfeb;
+  border: 1px solid var(--line-strong);
   border-radius: 10px;
   padding: 0.54rem 0.62rem;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.72);
   color: #171c28;
 }
 
@@ -99,7 +103,7 @@ input:focus,
 select:focus,
 textarea:focus,
 button:focus {
-  outline: 2px solid rgba(10, 132, 255, 0.2);
+  outline: 2px solid rgba(10, 132, 255, 0.22);
   outline-offset: 1px;
 }
 
@@ -113,15 +117,15 @@ button {
 }
 
 button.primary {
-  background: var(--brand);
+  background: linear-gradient(180deg, rgba(10, 132, 255, 0.94), rgba(5, 112, 220, 0.95));
   color: #fff;
-  border-color: var(--brand);
+  border-color: transparent;
 }
 
 button.ghost {
   background: var(--brand-soft);
   color: #0b4f94;
-  border-color: #cfe2ff;
+  border-color: rgba(10, 132, 255, 0.24);
 }
 
 .post-cards {
@@ -137,7 +141,9 @@ button.ghost {
   border: 1px solid var(--line);
   border-radius: 16px;
   padding: 0.8rem;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(15px) saturate(130%);
+  -webkit-backdrop-filter: blur(15px) saturate(130%);
   display: grid;
   gap: 0.5rem;
 }
@@ -176,8 +182,15 @@ label {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/* Narrow metric fields to prevent overlap */
 .grid-four {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 150px));
+  justify-content: space-between;
+}
+
+.grid-four label input {
+  width: 100%;
+  min-width: 0;
 }
 
 .thumb {
@@ -204,7 +217,9 @@ label {
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 0.8rem;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.58);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .score-card,
@@ -223,7 +238,7 @@ label {
 .confidence-pill {
   background: var(--brand-soft);
   color: #14589e;
-  border: 1px solid #cfe2ff;
+  border: 1px solid rgba(10, 132, 255, 0.24);
   border-radius: 999px;
   padding: 0.23rem 0.5rem;
   font-size: 0.76rem;
@@ -238,7 +253,7 @@ label {
 .metric-tile {
   border-radius: 12px;
   padding: 0.62rem;
-  border: 1px solid #cfe9dd;
+  border: 1px solid rgba(14, 159, 110, 0.26);
   background: var(--success-bg);
 }
 
@@ -278,11 +293,18 @@ label {
   }
 }
 
+@media (max-width: 980px) {
+  .grid-four {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: normal;
+  }
+}
+
 @media (max-width: 900px) {
   .toolbar,
-  .grid-four,
   .metric-grid,
-  .grid-two {
+  .grid-two,
+  .grid-four {
     grid-template-columns: 1fr;
   }
 }
