@@ -1,31 +1,37 @@
 # Social Post Intelligence (Apple-style UI)
 
-A sleek, modern web app to compare low-performing and high-performing social posts and generate AI-style conclusions for why one outperformed the other.
+A sleek, modern web app that lets you upload and compare **multiple social posts** at once.
 
-## Highlights
+## What changed
 
-- Apple-inspired glassmorphism UI with clean spacing, soft gradients, and modern cards.
-- Side-by-side post comparison inputs:
-  - Platform, content type, posting time
-  - Hook quality, CTA strength
-  - Engagement %, reach, saves/shares
-- **Visual upload analysis** for each post creative:
-  - Upload low-performing and high-performing post images
-  - Auto-preview each creative
-  - Heuristic visual signals (brightness, colorfulness, edge/detail density, aspect ratio)
-- AI-style output sections:
-  - Performance lift metrics
-  - Confidence level
-  - Visual AI signals
-  - Why the high-performing post likely won
-  - Actionable next-step recommendations
+- Replaced fixed “low-performing vs high-performing” mode with a **dynamic card system**.
+- Add as many posts as you want, then analyze all together.
+- Per-post inputs are now exactly what you asked for:
+  - Post image upload
+  - Caption
+  - Platform
+  - Post type
+  - Likes
+  - Comments
+  - Impressions
+  - Engagements
+  - Post date
+  - Post time
+- AI now auto-estimates from caption text:
+  - Hook quality score (1–10)
+  - CTA strength score (1–10)
+- Results are written in a **conversational style**, plus ranked comparisons and recommended actions.
 
 ## Usage
 
 1. Open `index.html` in your browser.
-2. Fill low/high post metrics.
-3. (Optional) Upload both post creatives to enable visual analysis.
-4. Click **Analyze Posts**.
-5. Review generated insights and recommendations.
+2. Click **Add Post** to create cards.
+3. Fill each post card (and optionally upload images).
+4. Click **Analyze All Posts**.
+5. Review:
+   - Top performer summary
+   - Conversational AI explanation
+   - Post-by-post comparison
+   - Recommended next actions
 
-Use **Load Example Data** to quickly test the analyzer flow.
+Use **Load Example Set** to test quickly.

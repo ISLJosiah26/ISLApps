@@ -16,129 +16,97 @@
           <p class="eyebrow">AI PERFORMANCE LAB</p>
           <h1>Social Post Intelligence</h1>
           <p class="subtitle">
-            Compare low-performing vs high-performing posts and uncover what visual + messaging choices drove results.
+            Upload as many posts as you want. The AI compares them, estimates hook + CTA strength, and explains winners in plain English.
           </p>
         </header>
 
-        <form id="analysis-form">
-          <fieldset>
-            <legend>Low-performing post</legend>
-            <label>
-              Platform
-              <input type="text" id="lowPlatform" placeholder="Instagram" required />
-            </label>
-            <label>
-              Content type
-              <select id="lowContentType" required>
-                <option value="">Select type</option>
-                <option>Image</option>
-                <option>Video</option>
-                <option>Carousel</option>
-                <option>Text</option>
-              </select>
-            </label>
-            <label>
-              Posting time
-              <input type="text" id="lowPostingTime" placeholder="Tuesday morning" required />
-            </label>
-            <div class="grid-two">
-              <label>
-                Hook quality (1-10)
-                <input type="number" min="1" max="10" id="lowHookScore" value="4" required />
-              </label>
-              <label>
-                CTA strength (1-10)
-                <input type="number" min="1" max="10" id="lowCtaScore" value="3" required />
-              </label>
-            </div>
-            <div class="grid-three">
-              <label>
-                Engagement %
-                <input type="number" min="0" step="0.01" id="lowEngagement" value="1.2" required />
-              </label>
-              <label>
-                Reach
-                <input type="number" min="0" step="1" id="lowReach" value="3200" required />
-              </label>
-              <label>
-                Saves/Shares
-                <input type="number" min="0" step="1" id="lowSaves" value="18" required />
-              </label>
-            </div>
-            <label>
-              Upload post creative
-              <input type="file" id="lowImage" accept="image/*" />
-            </label>
-            <img id="lowImagePreview" class="thumb" alt="Low-performing post preview" />
-          </fieldset>
+        <div class="toolbar">
+          <button type="button" id="addPostBtn" class="primary">+ Add Post</button>
+          <button type="button" id="loadExampleBtn">Load Example Set</button>
+          <button type="button" id="analyzeBtn">Analyze All Posts</button>
+        </div>
 
-          <fieldset>
-            <legend>High-performing post</legend>
-            <label>
-              Platform
-              <input type="text" id="highPlatform" placeholder="Instagram" required />
-            </label>
-            <label>
-              Content type
-              <select id="highContentType" required>
-                <option value="">Select type</option>
-                <option>Image</option>
-                <option>Video</option>
-                <option>Carousel</option>
-                <option>Text</option>
-              </select>
-            </label>
-            <label>
-              Posting time
-              <input type="text" id="highPostingTime" placeholder="Thursday evening" required />
-            </label>
-            <div class="grid-two">
-              <label>
-                Hook quality (1-10)
-                <input type="number" min="1" max="10" id="highHookScore" value="8" required />
-              </label>
-              <label>
-                CTA strength (1-10)
-                <input type="number" min="1" max="10" id="highCtaScore" value="8" required />
-              </label>
-            </div>
-            <div class="grid-three">
-              <label>
-                Engagement %
-                <input type="number" min="0" step="0.01" id="highEngagement" value="4.8" required />
-              </label>
-              <label>
-                Reach
-                <input type="number" min="0" step="1" id="highReach" value="14900" required />
-              </label>
-              <label>
-                Saves/Shares
-                <input type="number" min="0" step="1" id="highSaves" value="264" required />
-              </label>
-            </div>
-            <label>
-              Upload post creative
-              <input type="file" id="highImage" accept="image/*" />
-            </label>
-            <img id="highImagePreview" class="thumb" alt="High-performing post preview" />
-          </fieldset>
-
-          <div class="actions">
-            <button type="submit" class="primary">Analyze Posts</button>
-            <button type="button" id="loadExampleBtn">Load Example Data</button>
-          </div>
-        </form>
+        <div id="postCards" class="post-cards"></div>
       </section>
 
       <section class="panel output glass">
         <h2>AI Insights</h2>
-        <p class="output-subtitle">Quantitative + visual intelligence to explain what won.</p>
+        <p class="output-subtitle">Conversational analysis across creative quality, copy strategy, timing, and results.</p>
+
         <div id="scoreCard" class="score-card" aria-live="polite"></div>
-        <div id="visualInsights" class="insights" aria-live="polite"></div>
-        <div id="insights" class="insights" aria-live="polite"></div>
+        <div id="conversation" class="insights" aria-live="polite"></div>
+        <div id="comparison" class="insights" aria-live="polite"></div>
         <div id="recommendations" class="recommendations" aria-live="polite"></div>
       </section>
     </main>
+
+    <template id="postCardTemplate">
+      <article class="post-card" data-card>
+        <div class="post-card-head">
+          <h3 class="post-title">Post <span data-post-number></span></h3>
+          <button type="button" class="remove-btn" data-remove>Remove</button>
+        </div>
+
+        <label>
+          Upload post creative
+          <input type="file" data-field="image" accept="image/*" />
+        </label>
+        <img class="thumb" data-preview alt="Post creative preview" />
+
+        <label>
+          Caption
+          <textarea data-field="caption" rows="3" placeholder="Paste the post caption..."></textarea>
+        </label>
+
+        <div class="grid-two">
+          <label>
+            Platform
+            <input type="text" data-field="platform" placeholder="Instagram" />
+          </label>
+          <label>
+            Post type
+            <select data-field="postType">
+              <option value="">Select type</option>
+              <option>Image</option>
+              <option>Video</option>
+              <option>Carousel</option>
+              <option>Reel</option>
+              <option>Text</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="grid-four">
+          <label>
+            Likes
+            <input type="number" min="0" step="1" data-field="likes" value="0" />
+          </label>
+          <label>
+            Comments
+            <input type="number" min="0" step="1" data-field="comments" value="0" />
+          </label>
+          <label>
+            Impressions
+            <input type="number" min="0" step="1" data-field="impressions" value="0" />
+          </label>
+          <label>
+            Engagements
+            <input type="number" min="0" step="1" data-field="engagements" value="0" />
+          </label>
+        </div>
+
+        <div class="grid-two">
+          <label>
+            Post date
+            <input type="date" data-field="postDate" />
+          </label>
+          <label>
+            Post time
+            <input type="time" data-field="postTime" />
+          </label>
+        </div>
+      </article>
+    </template>
 
     <script src="app.js"></script>
   </body>

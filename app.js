@@ -1,70 +1,19 @@
-const form = document.getElementById('analysis-form');
+const postCardsRoot = document.getElementById('postCards');
+const postCardTemplate = document.getElementById('postCardTemplate');
+const addPostBtn = document.getElementById('addPostBtn');
 const loadExampleBtn = document.getElementById('loadExampleBtn');
+const analyzeBtn = document.getElementById('analyzeBtn');
+
 const scoreCard = document.getElementById('scoreCard');
-const visualInsights = document.getElementById('visualInsights');
-const insights = document.getElementById('insights');
+const conversation = document.getElementById('conversation');
+const comparison = document.getElementById('comparison');
 const recommendations = document.getElementById('recommendations');
 
-const fields = {
-  lowPlatform: document.getElementById('lowPlatform'),
-  lowContentType: document.getElementById('lowContentType'),
-  lowPostingTime: document.getElementById('lowPostingTime'),
-  lowHookScore: document.getElementById('lowHookScore'),
-  lowCtaScore: document.getElementById('lowCtaScore'),
-  lowEngagement: document.getElementById('lowEngagement'),
-  lowReach: document.getElementById('lowReach'),
-  lowSaves: document.getElementById('lowSaves'),
-  lowImage: document.getElementById('lowImage'),
-  lowImagePreview: document.getElementById('lowImagePreview'),
-  highPlatform: document.getElementById('highPlatform'),
-  highContentType: document.getElementById('highContentType'),
-  highPostingTime: document.getElementById('highPostingTime'),
-  highHookScore: document.getElementById('highHookScore'),
-  highCtaScore: document.getElementById('highCtaScore'),
-  highEngagement: document.getElementById('highEngagement'),
-  highReach: document.getElementById('highReach'),
-  highSaves: document.getElementById('highSaves'),
-  highImage: document.getElementById('highImage'),
-  highImagePreview: document.getElementById('highImagePreview'),
-};
+const HOOK_WORDS = ['how', 'why', 'secret', 'mistake', 'stop', 'before', 'now', 'guide', 'boost', 'proven'];
+const CTA_WORDS = ['comment', 'save', 'share', 'dm', 'click', 'follow', 'join', 'apply', 'learn more', 'tag'];
 
-const exampleData = {
-  lowPlatform: 'Instagram',
-  lowContentType: 'Image',
-  lowPostingTime: 'Tuesday morning',
-  lowHookScore: 4,
-  lowCtaScore: 3,
-  lowEngagement: 1.2,
-  lowReach: 3200,
-  lowSaves: 18,
-  highPlatform: 'Instagram',
-  highContentType: 'Carousel',
-  highPostingTime: 'Thursday evening',
-  highHookScore: 8,
-  highCtaScore: 8,
-  highEngagement: 4.8,
-  highReach: 14900,
-  highSaves: 264,
-};
-
-function toNumber(input) {
-  return Number.parseFloat(input) || 0;
-}
-
-function safeLift(low, high) {
-  if (low === 0 && high > 0) {
-    return 100;
-  }
-  if (low === 0) {
-    return 0;
-  }
-  return ((high - low) / low) * 100;
-}
-
-function classifyLift(percent) {
-  if (percent >= 75) return 'major';
-  if (percent >= 25) return 'moderate';
-  return 'small';
+function toNumber(value) {
+  return Number.parseFloat(value) || 0;
 }
 
 function escapeHtml(value) {
@@ -76,29 +25,131 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
-function getPayload() {
+function formatPercent(value) {
+  return `${value.toFixed(2)}%`;
+}
+
+function sentenceCase(value) {
+  if (!value) return 'unspecified';
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function pickCardElements(card) {
   return {
-    low: {
-      platform: fields.lowPlatform.value.trim(),
-      contentType: fields.lowContentType.value,
-      postingTime: fields.lowPostingTime.value.trim(),
-      hookScore: toNumber(fields.lowHookScore.value),
-      ctaScore: toNumber(fields.lowCtaScore.value),
-      engagement: toNumber(fields.lowEngagement.value),
-      reach: toNumber(fields.lowReach.value),
-      saves: toNumber(fields.lowSaves.value),
-    },
-    high: {
-      platform: fields.highPlatform.value.trim(),
-      contentType: fields.highContentType.value,
-      postingTime: fields.highPostingTime.value.trim(),
-      hookScore: toNumber(fields.highHookScore.value),
-      ctaScore: toNumber(fields.highCtaScore.value),
-      engagement: toNumber(fields.highEngagement.value),
-      reach: toNumber(fields.highReach.value),
-      saves: toNumber(fields.highSaves.value),
-    },
+    imageInput: card.querySelector('[data-field="image"]'),
+    preview: card.querySelector('[data-preview]'),
+    caption: card.querySelector('[data-field="caption"]'),
+    platform: card.querySelector('[data-field="platform"]'),
+    postType: card.querySelector('[data-field="postType"]'),
+    likes: card.querySelector('[data-field="likes"]'),
+    comments: card.querySelector('[data-field="comments"]'),
+    impressions: card.querySelector('[data-field="impressions"]'),
+    engagements: card.querySelector('[data-field="engagements"]'),
+    postDate: card.querySelector('[data-field="postDate"]'),
+    postTime: card.querySelector('[data-field="postTime"]'),
+    removeBtn: card.querySelector('[data-remove]'),
+    number: card.querySelector('[data-post-number]'),
   };
+}
+
+function updateCardNumbers() {
+  [...postCardsRoot.querySelectorAll('[data-card]')].forEach((card, index) => {
+    const numberEl = card.querySelector('[data-post-number]');
+    numberEl.textContent = `${index + 1}`;
+  });
+}
+
+function setPreview(file, previewEl) {
+  if (!file) {
+    previewEl.removeAttribute('src');
+    previewEl.classList.remove('is-visible');
+    return;
+  }
+
+  const url = URL.createObjectURL(file);
+  previewEl.src = url;
+  previewEl.classList.add('is-visible');
+  previewEl.onload = () => URL.revokeObjectURL(url);
+}
+
+function createCard(initialData = {}) {
+  const fragment = postCardTemplate.content.cloneNode(true);
+  const card = fragment.querySelector('[data-card]');
+  const el = pickCardElements(card);
+
+  el.caption.value = initialData.caption ?? '';
+  el.platform.value = initialData.platform ?? '';
+  el.postType.value = initialData.postType ?? '';
+  el.likes.value = initialData.likes ?? 0;
+  el.comments.value = initialData.comments ?? 0;
+  el.impressions.value = initialData.impressions ?? 0;
+  el.engagements.value = initialData.engagements ?? 0;
+  el.postDate.value = initialData.postDate ?? '';
+  el.postTime.value = initialData.postTime ?? '';
+
+  el.imageInput.addEventListener('change', () => {
+    setPreview(el.imageInput.files[0], el.preview);
+  });
+
+  el.removeBtn.addEventListener('click', () => {
+    card.remove();
+    updateCardNumbers();
+    renderEmptyIfNeeded();
+  });
+
+  postCardsRoot.append(card);
+  updateCardNumbers();
+}
+
+function getCardsPayload() {
+  return [...postCardsRoot.querySelectorAll('[data-card]')].map((card, index) => {
+    const el = pickCardElements(card);
+    return {
+      id: index + 1,
+      caption: el.caption.value.trim(),
+      platform: el.platform.value.trim(),
+      postType: el.postType.value,
+      likes: toNumber(el.likes.value),
+      comments: toNumber(el.comments.value),
+      impressions: toNumber(el.impressions.value),
+      engagements: toNumber(el.engagements.value),
+      postDate: el.postDate.value,
+      postTime: el.postTime.value,
+      imageFile: el.imageInput.files[0] ?? null,
+    };
+  });
+}
+
+function scoreHookQuality(caption) {
+  const text = caption.toLowerCase();
+  const lengthScore = caption.length > 140 ? 2 : caption.length > 70 ? 1.5 : 1;
+  const questionScore = text.includes('?') ? 2 : 0;
+  const numberScore = /\d/.test(text) ? 1.2 : 0;
+  const keywordScore = HOOK_WORDS.reduce((sum, word) => (text.includes(word) ? sum + 0.7 : sum), 0);
+  const emojiScore = /[\u{1F300}-\u{1FAFF}]/u.test(text) ? 0.8 : 0;
+
+  return Math.min(10, Math.max(1, Math.round((lengthScore + questionScore + numberScore + keywordScore + emojiScore) * 10) / 10));
+}
+
+function scoreCtaStrength(caption) {
+  const text = caption.toLowerCase();
+  const ctaHits = CTA_WORDS.reduce((sum, word) => (text.includes(word) ? sum + 1 : sum), 0);
+  const exclamationBoost = text.includes('!') ? 0.6 : 0;
+  const directAddressBoost = text.includes('you') || text.includes('your') ? 0.6 : 0;
+
+  const score = 1 + ctaHits * 1.4 + exclamationBoost + directAddressBoost;
+  return Math.min(10, Math.round(score * 10) / 10);
+}
+
+function detectDayPart(timeString) {
+  if (!timeString) return 'unknown time';
+  const hour = Number.parseInt(timeString.split(':')[0], 10);
+  if (Number.isNaN(hour)) return 'unknown time';
+  if (hour < 6) return 'late night';
+  if (hour < 12) return 'morning';
+  if (hour < 17) return 'afternoon';
+  if (hour < 21) return 'evening';
+  return 'night';
 }
 
 function loadImage(file) {
@@ -111,239 +162,235 @@ function loadImage(file) {
 }
 
 async function analyzeImage(file) {
-  if (!file) {
-    return null;
-  }
+  if (!file) return null;
 
   const img = await loadImage(file);
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
 
-  const maxSide = 240;
+  const maxSide = 220;
   const scale = Math.min(maxSide / img.width, maxSide / img.height, 1);
   canvas.width = Math.max(1, Math.round(img.width * scale));
   canvas.height = Math.max(1, Math.round(img.height * scale));
-
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-  let totalBrightness = 0;
-  let colorfulness = 0;
-  let edgeWeight = 0;
+  const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  let brightnessTotal = 0;
+  let colorfulnessTotal = 0;
 
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i];
     const g = data[i + 1];
     const b = data[i + 2];
 
-    const brightness = (r + g + b) / 3;
-    totalBrightness += brightness;
-
-    const rg = Math.abs(r - g);
-    const yb = Math.abs((r + g) * 0.5 - b);
-    colorfulness += rg + yb;
-
-    if (i >= 4) {
-      const prevR = data[i - 4];
-      const prevG = data[i - 3];
-      const prevB = data[i - 2];
-      edgeWeight += Math.abs(r - prevR) + Math.abs(g - prevG) + Math.abs(b - prevB);
-    }
+    brightnessTotal += (r + g + b) / 3;
+    colorfulnessTotal += Math.abs(r - g) + Math.abs((r + g) / 2 - b);
   }
 
   const pixels = data.length / 4;
-  const avgBrightness = totalBrightness / pixels;
-  const avgColorfulness = colorfulness / pixels;
-  const edgeDensity = edgeWeight / pixels;
-
   URL.revokeObjectURL(img.src);
 
   return {
-    brightness: avgBrightness,
-    colorfulness: avgColorfulness,
-    edgeDensity,
-    ratio: canvas.width / canvas.height,
+    brightness: brightnessTotal / pixels,
+    colorfulness: colorfulnessTotal / pixels,
+    aspectRatio: canvas.width / canvas.height,
   };
 }
 
-function visualSummary(lowVisual, highVisual) {
-  if (!lowVisual || !highVisual) {
-    return ['Upload both post images to unlock visual AI analysis.'];
-  }
+async function enrichPosts(rawPosts) {
+  const visuals = await Promise.all(rawPosts.map((post) => analyzeImage(post.imageFile)));
 
-  const points = [];
+  return rawPosts.map((post, index) => {
+    const hookQuality = scoreHookQuality(post.caption);
+    const ctaStrength = scoreCtaStrength(post.caption);
+    const engagementRate = post.impressions > 0 ? (post.engagements / post.impressions) * 100 : 0;
+    const interactionRate = post.impressions > 0 ? ((post.likes + post.comments) / post.impressions) * 100 : 0;
 
-  if (highVisual.brightness - lowVisual.brightness > 12) {
-    points.push('The high performer is notably brighter, suggesting clearer focal hierarchy and stronger feed visibility.');
-  }
+    const performanceScore = engagementRate * 0.55 + interactionRate * 0.25 + hookQuality * 1.3 + ctaStrength * 1.2;
 
-  if (highVisual.colorfulness - lowVisual.colorfulness > 10) {
-    points.push('The high performer uses richer color contrast, which likely increased thumb-stop impact.');
-  }
-
-  if (highVisual.edgeDensity - lowVisual.edgeDensity > 8) {
-    points.push('The high performer has more structural detail/edges, indicating denser visual storytelling.');
-  }
-
-  if (Math.abs(highVisual.ratio - lowVisual.ratio) > 0.12) {
-    points.push('Aspect ratio differs between creatives; composition format may have influenced platform distribution and attention.');
-  }
-
-  if (!points.length) {
-    points.push('Visual signatures are similar; copy quality, offer clarity, and timing likely drove most of the gap.');
-  }
-
-  return points;
+    return {
+      ...post,
+      hookQuality,
+      ctaStrength,
+      engagementRate,
+      interactionRate,
+      performanceScore,
+      dayPart: detectDayPart(post.postTime),
+      visual: visuals[index],
+    };
+  });
 }
 
-function analyze(payload, visuals) {
-  const engagementLift = safeLift(payload.low.engagement, payload.high.engagement);
-  const reachLift = safeLift(payload.low.reach, payload.high.reach);
-  const saveLift = safeLift(payload.low.saves, payload.high.saves);
-  const hookDelta = payload.high.hookScore - payload.low.hookScore;
-  const ctaDelta = payload.high.ctaScore - payload.low.ctaScore;
-
-  const signalScore = [engagementLift, reachLift, saveLift].reduce((sum, value) => sum + Math.max(0, value), 0) / 3;
-  const confidence = signalScore > 160 ? 'High confidence' : signalScore > 60 ? 'Medium confidence' : 'Low confidence';
-
-  const conclusions = [];
-
-  if (payload.low.platform && payload.high.platform && payload.low.platform !== payload.high.platform) {
-    conclusions.push(`Different platforms (${payload.low.platform} vs ${payload.high.platform}) likely contributed to part of the gap.`);
+function summarizeVisualDifference(topPost, bottomPost) {
+  if (!topPost.visual || !bottomPost.visual) {
+    return 'I could not compare both visuals yet. Upload images for each post and I’ll analyze brightness, color depth, and composition style too.';
   }
 
-  if (payload.low.contentType !== payload.high.contentType) {
-    conclusions.push(
-      `${payload.high.contentType} appears to outperform ${payload.low.contentType.toLowerCase()} in this sample via stronger interaction potential.`
-    );
+  const notes = [];
+
+  if (topPost.visual.brightness - bottomPost.visual.brightness > 10) {
+    notes.push('the winning creative is brighter, which typically improves feed-level scannability');
+  }
+  if (topPost.visual.colorfulness - bottomPost.visual.colorfulness > 8) {
+    notes.push('its color contrast appears stronger, which can increase thumb-stop rate');
+  }
+  if (Math.abs(topPost.visual.aspectRatio - bottomPost.visual.aspectRatio) > 0.12) {
+    notes.push('it uses a different composition ratio, which may have impacted platform presentation');
   }
 
-  if (payload.low.postingTime !== payload.high.postingTime) {
-    conclusions.push(`The ${payload.high.postingTime.toLowerCase()} slot likely aligned better with audience activity than ${payload.low.postingTime.toLowerCase()}.`);
+  if (!notes.length) {
+    return 'Visually, both posts are pretty similar, so copy clarity and timing likely drove the bigger performance differences.';
   }
 
-  if (hookDelta >= 2) {
-    conclusions.push(`Hook quality rose from ${payload.low.hookScore}/10 to ${payload.high.hookScore}/10, likely improving scroll-stop and initial attention.`);
-  }
-
-  if (ctaDelta >= 2) {
-    conclusions.push(`CTA clarity improved from ${payload.low.ctaScore}/10 to ${payload.high.ctaScore}/10, likely lifting saves/shares intent.`);
-  }
-
-  if (!conclusions.length) {
-    conclusions.push('No major qualitative differences were detected, so execution consistency should be tested across more posts.');
-  }
-
-  const recommendationList = [
-    `Prioritize ${payload.high.contentType.toLowerCase()} formats in your next 2-week content sprint.`,
-    `Keep posting in the ${payload.high.postingTime} window for priority campaigns.`,
-    'Adopt a reusable hook framework: pain point + promised outcome + proof cue.',
-    'Use one clear CTA and benchmark saves/shares as your intent KPI.',
-  ];
-
-  if (classifyLift(engagementLift) === 'major') {
-    recommendationList.push('Turn the winning concept into a creative family (carousel, short video, story) for compounding reach.');
-  }
-
-  return {
-    engagementLift,
-    reachLift,
-    saveLift,
-    confidence,
-    visualPoints: visualSummary(visuals.low, visuals.high),
-    conclusions,
-    recommendationList,
-  };
+  return `From a visual standpoint, ${notes.join(', ')}.`;
 }
 
-function liftClass(value) {
-  return value >= 0 ? 'metric-up' : 'metric-warn';
-}
+function renderMetrics(posts) {
+  const ranked = [...posts].sort((a, b) => b.performanceScore - a.performanceScore);
+  const leader = ranked[0];
 
-function renderMetric(label, value) {
-  return `<article class="metric-tile ${liftClass(value)}"><h3>${escapeHtml(label)}</h3><p>${value.toFixed(1)}%</p></article>`;
-}
-
-function render(result) {
   scoreCard.innerHTML = `
     <div class="score-header">
-      <strong>Performance delta</strong>
-      <span class="confidence-pill">${escapeHtml(result.confidence)}</span>
+      <strong>Top performer: Post ${leader.id}</strong>
+      <span class="confidence-pill">Compared ${posts.length} posts</span>
     </div>
     <div class="metric-grid">
-      ${renderMetric('Engagement lift', result.engagementLift)}
-      ${renderMetric('Reach lift', result.reachLift)}
-      ${renderMetric('Saves/Shares lift', result.saveLift)}
+      ${ranked
+        .slice(0, 3)
+        .map(
+          (post) => `<article class="metric-tile metric-up">
+            <h3>Post ${post.id}</h3>
+            <p>${post.performanceScore.toFixed(1)}</p>
+            <small>Engagement rate ${formatPercent(post.engagementRate)}</small>
+          </article>`
+        )
+        .join('')}
     </div>
-  `;
-
-  visualInsights.innerHTML = `
-    <strong>Visual AI signals</strong>
-    <ul>${result.visualPoints.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
-  `;
-
-  insights.innerHTML = `
-    <strong>Why the high-performing post won</strong>
-    <ul>${result.conclusions.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
-  `;
-
-  recommendations.innerHTML = `
-    <strong>What to do next</strong>
-    <ul>${result.recommendationList.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
   `;
 }
 
-function setPreview(file, target) {
-  if (!file) {
-    target.removeAttribute('src');
-    target.classList.remove('is-visible');
+function renderConversation(posts) {
+  const ranked = [...posts].sort((a, b) => b.performanceScore - a.performanceScore);
+  const winner = ranked[0];
+  const lowest = ranked[ranked.length - 1];
+
+  const message = `
+    <p><strong>Here’s the quick read:</strong> Post ${winner.id} is your strongest performer right now. It has a ${formatPercent(
+      winner.engagementRate
+    )} engagement rate, with an AI-estimated hook score of ${winner.hookQuality}/10 and CTA strength of ${winner.ctaStrength}/10.</p>
+    <p>Compared with Post ${lowest.id}, the biggest lift appears to come from better caption structure and clearer action language. ${summarizeVisualDifference(
+      winner,
+      lowest
+    )}</p>
+    <p>If you want, keep using this winning caption pattern on ${sentenceCase(winner.platform || 'your platform')} ${winner.postType || 'posts'} during the ${
+    winner.dayPart
+  } window.</p>
+  `;
+
+  conversation.innerHTML = `<strong>Conversational AI summary</strong>${message}`;
+}
+
+function renderComparison(posts) {
+  const rows = posts
+    .sort((a, b) => b.performanceScore - a.performanceScore)
+    .map(
+      (post) => `<li>
+        <strong>Post ${post.id}</strong> (${escapeHtml(post.postType || 'Unknown type')}, ${escapeHtml(post.platform || 'Unknown platform')}) — 
+        Score ${post.performanceScore.toFixed(1)} | Engagement ${formatPercent(post.engagementRate)} | Hook ${post.hookQuality}/10 | CTA ${post.ctaStrength}/10
+      </li>`
+    )
+    .join('');
+
+  comparison.innerHTML = `<strong>Post-by-post comparison</strong><ul>${rows}</ul>`;
+}
+
+function renderRecommendations(posts) {
+  const ranked = [...posts].sort((a, b) => b.performanceScore - a.performanceScore);
+  const top = ranked[0];
+
+  recommendations.innerHTML = `
+    <strong>What I’d do next</strong>
+    <ul>
+      <li>Clone Post ${top.id}'s opening style and publish 3 variants this week with different first lines.</li>
+      <li>Keep CTA wording direct (e.g., “save this”, “comment your take”, “DM for details”) and benchmark uplift.</li>
+      <li>Post your priority content in the <strong>${top.dayPart}</strong> time window until new data suggests otherwise.</li>
+      <li>Build a simple content scorecard: hook quality, CTA strength, engagement rate, and saves/comments trend over time.</li>
+    </ul>
+  `;
+}
+
+function renderEmptyIfNeeded() {
+  const cardsCount = postCardsRoot.querySelectorAll('[data-card]').length;
+  if (cardsCount > 0) return;
+
+  scoreCard.innerHTML = '<div class="empty-state">Add at least 2 posts to compare performance.</div>';
+  conversation.innerHTML = '<div class="empty-state">Conversational AI analysis will appear here.</div>';
+  comparison.innerHTML = '<div class="empty-state">Post-by-post comparison appears here.</div>';
+  recommendations.innerHTML = '<div class="empty-state">Actionable recommendations appear here.</div>';
+}
+
+async function analyzeAllPosts() {
+  const rawPosts = getCardsPayload();
+
+  if (rawPosts.length < 2) {
+    scoreCard.innerHTML = '<div class="empty-state">Please add at least 2 posts so I can compare them.</div>';
     return;
   }
 
-  const url = URL.createObjectURL(file);
-  target.src = url;
-  target.classList.add('is-visible');
-  target.onload = () => URL.revokeObjectURL(url);
+  const posts = await enrichPosts(rawPosts);
+  renderMetrics(posts);
+  renderConversation(posts);
+  renderComparison(posts);
+  renderRecommendations(posts);
 }
 
-async function runAnalysis() {
-  const payload = getPayload();
-  const visuals = {
-    low: await analyzeImage(fields.lowImage.files[0]),
-    high: await analyzeImage(fields.highImage.files[0]),
-  };
+function loadExamples() {
+  postCardsRoot.innerHTML = '';
 
-  render(analyze(payload, visuals));
+  const samplePosts = [
+    {
+      caption: 'Struggling to hire fast? 3 things we changed this month that boosted applicant quality. Save this checklist.',
+      platform: 'Instagram',
+      postType: 'Carousel',
+      likes: 240,
+      comments: 33,
+      impressions: 8200,
+      engagements: 412,
+      postDate: '2026-02-03',
+      postTime: '18:35',
+    },
+    {
+      caption: 'We are hiring now. Apply today.',
+      platform: 'Instagram',
+      postType: 'Image',
+      likes: 58,
+      comments: 4,
+      impressions: 5100,
+      engagements: 92,
+      postDate: '2026-02-01',
+      postTime: '09:10',
+    },
+    {
+      caption: 'Before you post job ads again, stop and fix these 2 mistakes. Comment "guide" and I\'ll DM the template.',
+      platform: 'LinkedIn',
+      postType: 'Text',
+      likes: 134,
+      comments: 27,
+      impressions: 6400,
+      engagements: 286,
+      postDate: '2026-02-05',
+      postTime: '14:20',
+    },
+  ];
+
+  samplePosts.forEach((post) => createCard(post));
+  analyzeAllPosts();
 }
 
-function loadExampleData() {
-  Object.entries(exampleData).forEach(([key, value]) => {
-    fields[key].value = value;
-  });
+addPostBtn.addEventListener('click', () => createCard());
+loadExampleBtn.addEventListener('click', loadExamples);
+analyzeBtn.addEventListener('click', analyzeAllPosts);
 
-  runAnalysis();
-}
-
-fields.lowImage.addEventListener('change', () => {
-  setPreview(fields.lowImage.files[0], fields.lowImagePreview);
-  runAnalysis();
-});
-
-fields.highImage.addEventListener('change', () => {
-  setPreview(fields.highImage.files[0], fields.highImagePreview);
-  runAnalysis();
-});
-
-form.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  await runAnalysis();
-});
-
-loadExampleBtn.addEventListener('click', loadExampleData);
-
-scoreCard.innerHTML = '<div class="empty-state">Submit post data to calculate performance lift.</div>';
-visualInsights.innerHTML = '<div class="empty-state">Upload post creatives to generate visual intelligence.</div>';
-insights.innerHTML = '<div class="empty-state">Conclusions will appear here after analysis.</div>';
-recommendations.innerHTML = '<div class="empty-state">Actionable recommendations will appear here.</div>';
-
-loadExampleData();
+createCard();
+createCard();
+renderEmptyIfNeeded();
