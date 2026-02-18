@@ -1,603 +1,651 @@
-const { useState, useRef, useCallback } = React;
+const postCardsRoot = document.getElementById('postCards');
+const postCardTemplate = document.getElementById('postCardTemplate');
+const addPostBtn = document.getElementById('addPostBtn');
+const loadExampleBtn = document.getElementById('loadExampleBtn');
+const analyzeBtn = document.getElementById('analyzeBtn');
 
-const PLATFORMS = ['LinkedIn', 'Instagram', 'Facebook'];
-const PLATFORM_META = {
-  LinkedIn: { emoji: '💼', color: '#0A84FF', glow: 'rgba(10,132,255,0.3)' },
-  Instagram: { emoji: '📸', color: '#FF375F', glow: 'rgba(255,55,95,0.3)' },
-  Facebook: { emoji: '👥', color: '#0A84FF', glow: 'rgba(10,132,255,0.25)' },
-};
-const POST_TYPES = {
-  LinkedIn: ['Text Only', 'Image', 'Carousel', 'Video', 'Article', 'Poll', 'Document'],
-  Instagram: ['Photo', 'Carousel', 'Reel', 'Story', 'Video'],
-  Facebook: ['Text Only', 'Photo', 'Video', 'Link', 'Reel', 'Story', 'Event'],
-};
+const scoreCard = document.getElementById('scoreCard');
+const conversation = document.getElementById('conversation');
+const comparison = document.getElementById('comparison');
+const recommendations = document.getElementById('recommendations');
 
-let uid = 0;
-const newPost = (platform = 'LinkedIn') => ({
-  id: ++uid,
-  platform,
-  postType: POST_TYPES[platform][0],
-  caption: '',
-  impressions: '',
-  engagements: '',
-  comments: '',
-  shares: '',
-  timePosted: '',
-  audience: '',
-  imageBase64: null,
-  imageMediaType: null,
-  imagePreview: null,
-});
+const HOOK_WORDS = ['how', 'why', 'secret', 'mistake', 'stop', 'before', 'now', 'guide', 'boost', 'proven', 'truth', 'framework'];
+const CTA_WORDS = ['comment', 'save', 'share', 'dm', 'click', 'follow', 'join', 'apply', 'learn more', 'tag', 'download', 'reply'];
+const POWER_TONES = ['imagine', 'instantly', 'unlock', 'breakthrough', 'insider', 'simple'];
 
-const engRate = (p) => {
-  const imp = Number(p.impressions) || 0;
-  const eng = Number(p.engagements) || 0;
-  if (!imp || !eng) return null;
-  return ((eng / imp) * 100).toFixed(2);
-};
-
-const appleFont = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif";
-
-const G = {
-  pageBg: '#0A0A0F',
-  glassCard: 'rgba(255,255,255,0.065)',
-  glassInput: 'rgba(255,255,255,0.07)',
-  borderHair: 'rgba(255,255,255,0.10)',
-  borderMid: 'rgba(255,255,255,0.14)',
-  separator: 'rgba(255,255,255,0.07)',
-  textPrimary: 'rgba(255,255,255,0.92)',
-  textSecondary: 'rgba(255,255,255,0.60)',
-  textTertiary: 'rgba(255,255,255,0.38)',
-  textQuaternary: 'rgba(255,255,255,0.22)',
-  blue: '#0A84FF',
-  blueGlow: 'rgba(10,132,255,0.4)',
-  blueSoft: 'rgba(10,132,255,0.15)',
-  blueMid: 'rgba(10,132,255,0.25)',
-  green: '#32D74B',
-  greenGlow: 'rgba(50,215,75,0.35)',
-  greenSoft: 'rgba(50,215,75,0.12)',
-  red: '#FF453A',
-  redSoft: 'rgba(255,69,58,0.12)',
-  orange: '#FF9F0A',
-  orangeSoft: 'rgba(255,159,10,0.12)',
-  purple: '#BF5AF2',
-  teal: '#5AC8FA',
-};
-
-const inputBase = {
-  width: '100%',
-  background: G.glassInput,
-  border: `1px solid ${G.borderHair}`,
-  borderRadius: 12,
-  padding: '11px 14px',
-  color: G.textPrimary,
-  fontSize: 15,
-  fontFamily: appleFont,
-  outline: 'none',
-  boxSizing: 'border-box',
-  transition: 'all 0.2s',
-  WebkitAppearance: 'none',
-  backdropFilter: 'blur(10px)',
-};
-
-const selectBase = {
-  ...inputBase,
-  backgroundImage:
-    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='rgba(255,255,255,0.4)' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
-  backgroundRepeat: 'no-repeat',
-  backgroundPosition: 'right 13px center',
-  paddingRight: 38,
-  cursor: 'pointer',
-};
-
-const textareaBase = {
-  ...inputBase,
-  resize: 'vertical',
-  minHeight: 100,
-  lineHeight: 1.55,
-};
-
-function GlassCard({ children, style = {}, glow }) {
-  return (
-    <div
-      style={{
-        background: G.glassCard,
-        backdropFilter: 'blur(40px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-        border: `1px solid ${G.borderHair}`,
-        borderRadius: 20,
-        boxShadow: glow
-          ? `0 0 0 1px ${G.borderHair}, 0 8px 32px rgba(0,0,0,0.4), 0 0 60px ${glow}`
-          : `0 0 0 1px ${G.borderHair}, 0 8px 32px rgba(0,0,0,0.4)`,
-        overflow: 'hidden',
-        position: 'relative',
-        ...style,
-      }}
-    >
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 1,
-          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent)',
-          pointerEvents: 'none',
-        }}
-      />
-      {children}
-    </div>
-  );
+function toNumber(value) {
+  return Number.parseFloat(value) || 0;
 }
 
-function SectionLabel({ children }) {
-  return (
-    <div
-      style={{
-        fontSize: 11,
-        fontWeight: 700,
-        color: G.textTertiary,
-        letterSpacing: '0.10em',
-        textTransform: 'uppercase',
-        margin: '28px 0 10px 2px',
-        fontFamily: appleFont,
-      }}
-    >
-      {children}
-    </div>
-  );
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
-function FieldLabel({ children, color }) {
-  return (
-    <div
-      style={{
-        fontSize: 12,
-        fontWeight: 600,
-        color: color || G.textTertiary,
-        letterSpacing: '0.02em',
-        marginBottom: 7,
-        fontFamily: appleFont,
-      }}
-    >
-      {children}
-    </div>
-  );
+function formatPercent(value) {
+  return `${value.toFixed(2)}%`;
 }
 
-function MetricField({ label, value, onChange, placeholder, accentColor }) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <div>
-      <FieldLabel color={focused ? accentColor : undefined}>{label}</FieldLabel>
-      <input
-        type="number"
-        min="0"
-        style={{
-          ...inputBase,
-          borderColor: focused ? accentColor : G.borderHair,
-          boxShadow: focused
-            ? `0 0 0 3px ${accentColor}25, inset 0 1px 0 rgba(255,255,255,0.05)`
-            : 'inset 0 1px 0 rgba(255,255,255,0.03)',
-          background: focused ? `${accentColor}0D` : G.glassInput,
-        }}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-      />
-    </div>
-  );
+function sentenceCase(value) {
+  if (!value) return 'unspecified';
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function GlassInput({ value, onChange, placeholder, multiline }) {
-  const [focused, setFocused] = useState(false);
-  const style = {
-    ...(multiline ? textareaBase : inputBase),
-    borderColor: focused ? G.borderMid : G.borderHair,
-    boxShadow: focused ? `0 0 0 3px ${G.blueSoft}` : 'inset 0 1px 0 rgba(255,255,255,0.03)',
-    background: focused ? 'rgba(255,255,255,0.09)' : G.glassInput,
+function pickCardElements(card) {
+  return {
+    imageInput: card.querySelector('[data-field="image"]'),
+    preview: card.querySelector('[data-preview]'),
+    fileName: card.querySelector('[data-file-name]'),
+    caption: card.querySelector('[data-field="caption"]'),
+    platform: card.querySelector('[data-field="platform"]'),
+    postType: card.querySelector('[data-field="postType"]'),
+    likes: card.querySelector('[data-field="likes"]'),
+    comments: card.querySelector('[data-field="comments"]'),
+    impressions: card.querySelector('[data-field="impressions"]'),
+    engagements: card.querySelector('[data-field="engagements"]'),
+    postDate: card.querySelector('[data-field="postDate"]'),
+    postTime: card.querySelector('[data-field="postTime"]'),
+    removeBtn: card.querySelector('[data-remove]'),
   };
-  return multiline ? (
-    <textarea
-      style={style}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-    />
-  ) : (
-    <input
-      style={style}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-    />
-  );
 }
 
-function GlassSelect({ value, onChange, options }) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <select
-      style={{
-        ...selectBase,
-        borderColor: focused ? G.borderMid : G.borderHair,
-        boxShadow: focused ? `0 0 0 3px ${G.blueSoft}` : 'none',
-        background: focused ? 'rgba(255,255,255,0.10)' : G.glassInput,
-      }}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-    >
-      {options.map((o) => (
-        <option key={o} value={o} style={{ background: '#1C1C1E', color: '#fff' }}>
-          {o}
-        </option>
-      ))}
-    </select>
-  );
+function updateCardNumbers() {
+  [...postCardsRoot.querySelectorAll('[data-card]')].forEach((card, index) => {
+    const numberEl = card.querySelector('[data-post-number]');
+    numberEl.textContent = `${index + 1}`;
+  });
 }
 
-function EngagementRateBar({ post }) {
-  const rate = engRate(post);
-  if (rate === null) {
-    return (
-      <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(255,255,255,0.04)', borderRadius: 10, border: `1px dashed ${G.borderHair}` }}>
-        <span style={{ fontSize: 12, color: G.textQuaternary, fontFamily: appleFont }}>Enter impressions & engagements to see rate</span>
-      </div>
+function setPreview(file, previewEl, fileNameEl) {
+  if (!file) {
+    previewEl.removeAttribute('src');
+    previewEl.classList.remove('is-visible');
+    fileNameEl.textContent = 'No file selected';
+    return;
+  }
+
+  const url = URL.createObjectURL(file);
+  previewEl.src = url;
+  previewEl.classList.add('is-visible');
+  fileNameEl.textContent = file.name;
+  previewEl.onload = () => URL.revokeObjectURL(url);
+}
+
+function createCard(initialData = {}) {
+  const fragment = postCardTemplate.content.cloneNode(true);
+  const card = fragment.querySelector('[data-card]');
+  const el = pickCardElements(card);
+
+  el.caption.value = initialData.caption ?? '';
+  el.platform.value = initialData.platform ?? '';
+  el.postType.value = initialData.postType ?? '';
+  el.likes.value = initialData.likes ?? 0;
+  el.comments.value = initialData.comments ?? 0;
+  el.impressions.value = initialData.impressions ?? 0;
+  el.engagements.value = initialData.engagements ?? 0;
+  el.postDate.value = initialData.postDate ?? '';
+  el.postTime.value = initialData.postTime ?? '';
+
+  el.imageInput.addEventListener('change', () => {
+    setPreview(el.imageInput.files[0], el.preview, el.fileName);
+  });
+
+  el.removeBtn.addEventListener('click', () => {
+    card.remove();
+    updateCardNumbers();
+    renderEmptyIfNeeded();
+  });
+
+  postCardsRoot.append(card);
+  updateCardNumbers();
+}
+
+function getCardsPayload() {
+  return [...postCardsRoot.querySelectorAll('[data-card]')].map((card, index) => {
+    const el = pickCardElements(card);
+    return {
+      id: index + 1,
+      caption: el.caption.value.trim(),
+      platform: el.platform.value.trim(),
+      postType: el.postType.value,
+      likes: toNumber(el.likes.value),
+      comments: toNumber(el.comments.value),
+      impressions: toNumber(el.impressions.value),
+      engagements: toNumber(el.engagements.value),
+      postDate: el.postDate.value,
+      postTime: el.postTime.value,
+      imageFile: el.imageInput.files[0] ?? null,
+    };
+  });
+}
+
+function countWordHits(text, words) {
+  return words.reduce((sum, word) => (text.includes(word) ? sum + 1 : sum), 0);
+}
+
+function scoreHookQuality(caption) {
+  const text = caption.toLowerCase();
+  const questionScore = text.includes('?') ? 1.8 : 0;
+  const numberScore = /\d/.test(text) ? 1.1 : 0;
+  const keywordScore = countWordHits(text, HOOK_WORDS) * 0.65;
+  const toneScore = countWordHits(text, POWER_TONES) * 0.4;
+  const lengthSweetSpot = caption.length >= 80 && caption.length <= 220 ? 1.5 : 0.8;
+  const patternBreak = /(^|\s)(you|your|we|imagine|what if)(\s|,|\?)/.test(text) ? 0.8 : 0;
+
+  const raw = lengthSweetSpot + questionScore + numberScore + keywordScore + toneScore + patternBreak;
+  return Math.min(10, Math.max(1, Math.round(raw * 10) / 10));
+}
+
+function scoreCtaStrength(caption) {
+  const text = caption.toLowerCase();
+  const ctaHits = countWordHits(text, CTA_WORDS);
+  const directiveBoost = /(do this|try this|save this|comment below|dm me|tap)/.test(text) ? 1 : 0;
+  const urgencyBoost = /(today|now|this week|don’t miss|limited)/.test(text) ? 0.7 : 0;
+  const clarityBoost = /(for|to get|to learn|so you can)/.test(text) ? 0.6 : 0;
+
+  const score = 1.2 + ctaHits * 1.2 + directiveBoost + urgencyBoost + clarityBoost;
+  return Math.min(10, Math.round(score * 10) / 10);
+}
+
+function detectDayPart(timeString) {
+  if (!timeString) return 'unknown time';
+  const hour = Number.parseInt(timeString.split(':')[0], 10);
+  if (Number.isNaN(hour)) return 'unknown time';
+  if (hour < 6) return 'late night';
+  if (hour < 12) return 'morning';
+  if (hour < 17) return 'afternoon';
+  if (hour < 21) return 'evening';
+  return 'night';
+}
+
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+async function analyzeImage(file) {
+  if (!file) return null;
+
+  const img = await loadImage(file);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  const maxSide = 220;
+  const scale = Math.min(maxSide / img.width, maxSide / img.height, 1);
+  canvas.width = Math.max(1, Math.round(img.width * scale));
+  canvas.height = Math.max(1, Math.round(img.height * scale));
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+  const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  let brightnessTotal = 0;
+  let colorfulnessTotal = 0;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    brightnessTotal += (r + g + b) / 3;
+    colorfulnessTotal += Math.abs(r - g) + Math.abs((r + g) / 2 - b);
+  }
+
+  const pixels = data.length / 4;
+  URL.revokeObjectURL(img.src);
+
+  return {
+    brightness: brightnessTotal / pixels,
+    colorfulness: colorfulnessTotal / pixels,
+    aspectRatio: canvas.width / canvas.height,
+  };
+}
+
+async function enrichPosts(rawPosts) {
+  const visuals = await Promise.all(rawPosts.map((post) => analyzeImage(post.imageFile)));
+
+  return rawPosts.map((post, index) => {
+    const hookQuality = scoreHookQuality(post.caption);
+    const ctaStrength = scoreCtaStrength(post.caption);
+    const engagementRate = post.impressions > 0 ? (post.engagements / post.impressions) * 100 : 0;
+    const interactionRate = post.impressions > 0 ? ((post.likes + post.comments) / post.impressions) * 100 : 0;
+    const commentsToLikes = post.likes > 0 ? post.comments / post.likes : 0;
+
+    const performanceScore = engagementRate * 0.5 + interactionRate * 0.25 + hookQuality * 1.4 + ctaStrength * 1.35;
+
+    return {
+      ...post,
+      hookQuality,
+      ctaStrength,
+      engagementRate,
+      interactionRate,
+      commentsToLikes,
+      performanceScore,
+      dayPart: detectDayPart(post.postTime),
+      visual: visuals[index],
+    };
+  });
+}
+
+function summarizeVisualDifference(topPost, bottomPost) {
+  if (!topPost.visual || !bottomPost.visual) {
+    return 'I can already compare copy and performance trends, and if you upload images for each post I can also critique visual style shifts.';
+  }
+
+  const notes = [];
+
+  if (topPost.visual.brightness - bottomPost.visual.brightness > 10) {
+    notes.push('the winner is visibly brighter, which usually reads cleaner in the first 0.5 seconds of feed scanning');
+  }
+  if (topPost.visual.colorfulness - bottomPost.visual.colorfulness > 8) {
+    notes.push('its color contrast is more assertive, likely giving it stronger thumb-stop energy');
+  }
+  if (Math.abs(topPost.visual.aspectRatio - bottomPost.visual.aspectRatio) > 0.12) {
+    notes.push('it uses a different framing ratio, which can materially change composition and on-platform presentation');
+  }
+
+  if (!notes.length) {
+    return 'Creatively, the visuals are in a similar family, so your biggest lift came from copy direction and timing rather than design alone.';
+  }
+
+  return `Visually, ${notes.join(', ')}.`;
+}
+
+function getCreativeCritique(post) {
+  const notes = [];
+
+  if (post.hookQuality >= 8.5) {
+    notes.push('opens with a high-friction hook that earns attention quickly');
+  } else if (post.hookQuality <= 4.5) {
+    notes.push('starts softly and likely needs a sharper first-line tension point');
+  }
+
+  if (post.ctaStrength >= 8) {
+    notes.push('uses clear conversion language that tells the audience exactly what to do next');
+  } else if (post.ctaStrength <= 4.5) {
+    notes.push('has a passive CTA tone, so intent is probably leaking before action');
+  }
+
+  if (post.commentsToLikes > 0.22) {
+    notes.push('creates above-average conversation depth, which suggests polarizing or high-relevance messaging');
+  }
+
+  if (post.dayPart === 'evening' || post.dayPart === 'afternoon') {
+    notes.push(`was published in the ${post.dayPart}, which is often favorable for dwell time`);
+  }
+
+  return notes.length ? notes.join('; ') : 'shows balanced performance characteristics without one dominant creative signal.';
+}
+
+function renderMetrics(posts) {
+  const ranked = [...posts].sort((a, b) => b.performanceScore - a.performanceScore);
+  const leader = ranked[0];
+
+  scoreCard.innerHTML = `
+    <div class="score-header">
+      <strong>Top performer: Post ${leader.id}</strong>
+      <span class="confidence-pill">Compared ${posts.length} posts</span>
+    </div>
+    <div class="metric-grid">
+      ${ranked
+        .slice(0, 3)
+        .map(
+          (post) => `<article class="metric-tile metric-up">
+            <h3>Post ${post.id}</h3>
+            <p>${post.performanceScore.toFixed(1)}</p>
+            <small>Engagement ${formatPercent(post.engagementRate)} · Hook ${post.hookQuality}/10 · CTA ${post.ctaStrength}/10</small>
+          </article>`
+        )
+        .join('')}
+    </div>
+  `;
+}
+
+function renderConversation(posts) {
+  const ranked = [...posts].sort((a, b) => b.performanceScore - a.performanceScore);
+  const winner = ranked[0];
+  const runnerUp = ranked[1];
+  const lowest = ranked[ranked.length - 1];
+
+  const spread = winner.performanceScore - lowest.performanceScore;
+  const engagementGap = winner.engagementRate - lowest.engagementRate;
+  const hookGap = winner.hookQuality - lowest.hookQuality;
+  const ctaGap = winner.ctaStrength - lowest.ctaStrength;
+
+  const plainReasons = [];
+  if (hookGap > 1) {
+    plainReasons.push(`it starts stronger (hook ${winner.hookQuality}/10 vs ${lowest.hookQuality}/10)`);
+  }
+  if (ctaGap > 1) {
+    plainReasons.push(`it asks for action more clearly (CTA ${winner.ctaStrength}/10 vs ${lowest.ctaStrength}/10)`);
+  }
+  if (winner.commentsToLikes > lowest.commentsToLikes) {
+    plainReasons.push('it creates deeper conversation, not just passive likes');
+  }
+  if (winner.dayPart !== 'unknown time') {
+    plainReasons.push(`it was posted in a ${winner.dayPart} window that appears to work better for your audience`);
+  }
+
+  const reasonLine =
+    plainReasons.length > 0
+      ? `Most likely, it won because ${plainReasons.join(', ')}.`
+      : 'Most likely, it won through better overall message fit and audience relevance.';
+
+  const message = `
+    <p><strong>What I’m seeing:</strong> Post ${winner.id} is your current winner. It reached an engagement rate of ${formatPercent(
+      winner.engagementRate
+    )}, and it leads the set by <strong>${spread.toFixed(1)} score points</strong>.</p>
+    <p>Compared with Post ${lowest.id}, that is a <strong>${engagementGap.toFixed(2)}%</strong> engagement-rate lift. ${reasonLine}</p>
+    <p>Post ${runnerUp.id} is close, so your top pattern is repeatable. Keep the same message spine from Post ${winner.id}, but test 2 new first-line hooks and 2 CTA endings to find the next lift.</p>
+    <p><strong>Visual note:</strong> ${escapeHtml(summarizeVisualDifference(winner, lowest))}</p>
+    <p><strong>Simple takeaway:</strong> clearer opening + clearer action + better timing is outperforming generic phrasing.</p>
+  `;
+
+  conversation.innerHTML = `<strong>Conversational AI summary</strong>${message}`;
+}
+
+function renderComparison(posts) {
+  const rows = [...posts]
+    .sort((a, b) => b.performanceScore - a.performanceScore)
+    .map(
+      (post) => `<li>
+        <strong>Post ${post.id}</strong> (${escapeHtml(post.postType || 'Unknown type')}, ${escapeHtml(post.platform || 'Unknown platform')}) —
+        Score ${post.performanceScore.toFixed(1)} | Engagement ${formatPercent(post.engagementRate)} | Hook ${post.hookQuality}/10 | CTA ${post.ctaStrength}/10
+        <br /><span class="row-critique">Critique: ${escapeHtml(getCreativeCritique(post))}.</span>
+      </li>`
+    )
+    .join('');
+
+  comparison.innerHTML = `<strong>Post-by-post breakdown (plain language)</strong><ul>${rows}</ul>`;
+}
+
+function renderRecommendations(posts) {
+  const ranked = [...posts].sort((a, b) => b.performanceScore - a.performanceScore);
+  const top = ranked[0];
+  const bottom = ranked[ranked.length - 1];
+
+  recommendations.innerHTML = `
+    <strong>What I’d do next</strong>
+    <ul>
+      <li>Build a 3-post mini-series from Post ${top.id}'s opening style. Keep the same promise angle, but vary proof format (stat, story, checklist).</li>
+      <li>Rewrite Post ${bottom.id} with a contrast-based first line ("Most people do X. Here’s why that fails.") and one explicit CTA in the final sentence.</li>
+      <li>A/B test two CTA endings this week: one community CTA ("comment") vs one retention CTA ("save this").</li>
+      <li>For the next cycle, track comments-to-likes ratio as a quality signal, not just total engagements.</li>
+    </ul>
+  `;
+}
+
+function renderEmptyIfNeeded() {
+  const cardsCount = postCardsRoot.querySelectorAll('[data-card]').length;
+  if (cardsCount > 0) return;
+
+  scoreCard.innerHTML = '<div class="empty-state">Add at least 2 posts to compare performance.</div>';
+  conversation.innerHTML = '<div class="empty-state">Conversational AI analysis will appear here.</div>';
+  comparison.innerHTML = '<div class="empty-state">Post-by-post comparison appears here.</div>';
+  recommendations.innerHTML = '<div class="empty-state">Actionable recommendations appear here.</div>';
+}
+
+async function analyzeAllPosts() {
+  const rawPosts = getCardsPayload();
+
+  if (rawPosts.length < 2) {
+    scoreCard.innerHTML = '<div class="empty-state">Please add at least 2 posts so I can compare them.</div>';
+    return;
+  }
+
+  const posts = await enrichPosts(rawPosts);
+  renderMetrics(posts);
+  renderConversation(posts);
+  renderComparison(posts);
+  renderRecommendations(posts);
+}
+
+function loadExamples() {
+  postCardsRoot.innerHTML = '';
+
+  const samplePosts = [
+    {
+      caption: 'Most hiring posts fail because they open with role details instead of emotional tension. Here are 3 fixes. Save this and try one today.',
+      platform: 'Instagram',
+      postType: 'Carousel',
+      likes: 286,
+      comments: 41,
+      impressions: 8600,
+      engagements: 470,
+      postDate: '2026-02-03',
+      postTime: '18:35',
+    },
+    {
+      caption: 'We are hiring now. Apply today.',
+      platform: 'Instagram',
+      postType: 'Image',
+      likes: 58,
+      comments: 4,
+      impressions: 5100,
+      engagements: 92,
+      postDate: '2026-02-01',
+      postTime: '09:10',
+    },
+    {
+      caption: 'Before you post another ad, stop. Comment "guide" and I will DM the exact structure that doubled applicant quality for us.',
+      platform: 'LinkedIn',
+      postType: 'Text',
+      likes: 154,
+      comments: 31,
+      impressions: 6400,
+      engagements: 302,
+      postDate: '2026-02-05',
+      postTime: '14:20',
+    },
+  ];
+
+  samplePosts.forEach((post) => createCard(post));
+  analyzeAllPosts();
+}
+
+addPostBtn.addEventListener('click', () => createCard());
+loadExampleBtn.addEventListener('click', loadExamples);
+analyzeBtn.addEventListener('click', analyzeAllPosts);
+
+createCard();
+createCard();
+renderEmptyIfNeeded();
+const form = document.getElementById('analysis-form');
+const loadExampleBtn = document.getElementById('loadExampleBtn');
+const scoreCard = document.getElementById('scoreCard');
+const insights = document.getElementById('insights');
+const recommendations = document.getElementById('recommendations');
+
+const fields = {
+  lowPlatform: document.getElementById('lowPlatform'),
+  lowContentType: document.getElementById('lowContentType'),
+  lowPostingTime: document.getElementById('lowPostingTime'),
+  lowHookScore: document.getElementById('lowHookScore'),
+  lowCtaScore: document.getElementById('lowCtaScore'),
+  lowEngagement: document.getElementById('lowEngagement'),
+  lowReach: document.getElementById('lowReach'),
+  lowSaves: document.getElementById('lowSaves'),
+  highPlatform: document.getElementById('highPlatform'),
+  highContentType: document.getElementById('highContentType'),
+  highPostingTime: document.getElementById('highPostingTime'),
+  highHookScore: document.getElementById('highHookScore'),
+  highCtaScore: document.getElementById('highCtaScore'),
+  highEngagement: document.getElementById('highEngagement'),
+  highReach: document.getElementById('highReach'),
+  highSaves: document.getElementById('highSaves'),
+};
+
+const exampleData = {
+  lowPlatform: 'Instagram',
+  lowContentType: 'Image',
+  lowPostingTime: 'Tuesday morning',
+  lowHookScore: 4,
+  lowCtaScore: 3,
+  lowEngagement: 1.2,
+  lowReach: 3200,
+  lowSaves: 18,
+  highPlatform: 'Instagram',
+  highContentType: 'Carousel',
+  highPostingTime: 'Thursday evening',
+  highHookScore: 8,
+  highCtaScore: 8,
+  highEngagement: 4.8,
+  highReach: 14900,
+  highSaves: 264,
+};
+
+function toNumber(input) {
+  return Number.parseFloat(input) || 0;
+}
+
+function safeLift(low, high) {
+  if (low === 0 && high > 0) {
+    return 100;
+  }
+  if (low === 0) {
+    return 0;
+  }
+  return ((high - low) / low) * 100;
+}
+
+function classifyLift(percent) {
+  if (percent >= 75) {
+    return 'major';
+  }
+  if (percent >= 25) {
+    return 'moderate';
+  }
+  return 'small';
+}
+
+function getPayload() {
+  return {
+    low: {
+      platform: fields.lowPlatform.value.trim(),
+      contentType: fields.lowContentType.value,
+      postingTime: fields.lowPostingTime.value.trim(),
+      hookScore: toNumber(fields.lowHookScore.value),
+      ctaScore: toNumber(fields.lowCtaScore.value),
+      engagement: toNumber(fields.lowEngagement.value),
+      reach: toNumber(fields.lowReach.value),
+      saves: toNumber(fields.lowSaves.value),
+    },
+    high: {
+      platform: fields.highPlatform.value.trim(),
+      contentType: fields.highContentType.value,
+      postingTime: fields.highPostingTime.value.trim(),
+      hookScore: toNumber(fields.highHookScore.value),
+      ctaScore: toNumber(fields.highCtaScore.value),
+      engagement: toNumber(fields.highEngagement.value),
+      reach: toNumber(fields.highReach.value),
+      saves: toNumber(fields.highSaves.value),
+    },
+  };
+}
+
+function analyze(payload) {
+  const engagementLift = safeLift(payload.low.engagement, payload.high.engagement);
+  const reachLift = safeLift(payload.low.reach, payload.high.reach);
+  const saveLift = safeLift(payload.low.saves, payload.high.saves);
+  const hookDelta = payload.high.hookScore - payload.low.hookScore;
+  const ctaDelta = payload.high.ctaScore - payload.low.ctaScore;
+
+  const conclusions = [];
+
+  if (payload.low.contentType !== payload.high.contentType) {
+    conclusions.push(
+      `The ${payload.high.contentType.toLowerCase()} format likely outperformed the ${payload.low.contentType.toLowerCase()} format by creating more scroll-stopping depth and interaction opportunities.`
     );
   }
-  const r = Number.parseFloat(rate);
-  const pct = Math.min((r / 10) * 100, 100);
-  const { color, label, glow } =
-    r >= 5
-      ? { color: G.green, label: 'Excellent', glow: G.greenGlow }
-      : r >= 3
-      ? { color: '#32D74B', label: 'Good', glow: 'rgba(50,215,75,0.2)' }
-      : r >= 1
-      ? { color: G.orange, label: 'Average', glow: 'rgba(255,159,10,0.2)' }
-      : { color: G.red, label: 'Low', glow: 'rgba(255,69,58,0.2)' };
 
-  return (
-    <div style={{ marginTop: 14, padding: '12px 14px', background: 'rgba(255,255,255,0.04)', borderRadius: 12, border: `1px solid ${G.borderHair}` }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <span style={{ fontSize: 12, color: G.textTertiary, fontFamily: appleFont, fontWeight: 500 }}>Engagement Rate</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color, background: `${color}18`, padding: '2px 8px', borderRadius: 20, border: `1px solid ${color}30` }}>{label}</span>
-          <span style={{ fontSize: 14, fontWeight: 700, color, fontFamily: appleFont }}>{rate}%</span>
-        </div>
-      </div>
-      <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 99, overflow: 'hidden' }}>
-        <div
-          style={{
-            height: '100%',
-            width: `${pct}%`,
-            background: `linear-gradient(90deg, ${color}aa, ${color})`,
-            borderRadius: 99,
-            boxShadow: `0 0 8px ${glow}`,
-            transition: 'width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function ImageDropzone({ imagePreview, onUpload, onRemove }) {
-  const fileRef = useRef();
-  const [dragging, setDragging] = useState(false);
-
-  const handleFile = (file) => {
-    if (!file || !file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      onUpload({ base64: e.target.result.split(',')[1], mediaType: file.type, preview: e.target.result });
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const onDrop = useCallback((e) => {
-    e.preventDefault();
-    setDragging(false);
-    handleFile(e.dataTransfer.files[0]);
-  }, []);
-
-  return (
-    <div>
-      <FieldLabel>Visual Post — AI will analyze it (optional)</FieldLabel>
-      {imagePreview ? (
-        <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', border: `1px solid ${G.borderMid}` }}>
-          <img src={imagePreview} alt="Post" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', display: 'block' }} />
-          <button
-            onClick={onRemove}
-            style={{
-              position: 'absolute',
-              top: 10,
-              right: 10,
-              width: 30,
-              height: 30,
-              borderRadius: 99,
-              background: 'rgba(0,0,0,0.6)',
-              border: `1px solid rgba(255,255,255,0.2)`,
-              color: 'rgba(255,255,255,0.9)',
-              fontSize: 13,
-              cursor: 'pointer',
-            }}
-          >
-            ✕
-          </button>
-        </div>
-      ) : (
-        <div
-          onClick={() => fileRef.current?.click()}
-          onDrop={onDrop}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragging(true);
-          }}
-          onDragLeave={() => setDragging(false)}
-          style={{
-            border: `1.5px dashed ${dragging ? G.blue : G.borderMid}`,
-            borderRadius: 14,
-            padding: '24px 20px',
-            background: dragging ? G.blueSoft : 'rgba(255,255,255,0.03)',
-            textAlign: 'center',
-            cursor: 'pointer',
-          }}
-        >
-          <div style={{ fontSize: 26, marginBottom: 6 }}>🖼️</div>
-          <div style={{ fontSize: 14, color: dragging ? G.blue : G.textSecondary, fontWeight: 600, fontFamily: appleFont }}>Upload Post Image</div>
-          <div style={{ fontSize: 12, color: G.textTertiary, marginTop: 3, fontFamily: appleFont }}>Drag & drop or click · JPG, PNG, WebP</div>
-          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleFile(e.target.files[0])} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function TierChip({ tier }) {
-  return (
-    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 99, background: tier === 'high' ? G.greenSoft : G.redSoft, color: tier === 'high' ? G.green : G.red, border: `1px solid ${tier === 'high' ? 'rgba(50,215,75,0.3)' : 'rgba(255,69,58,0.3)'}`, fontFamily: appleFont }}>
-      {tier === 'high' ? '↑ High' : '↓ Low'}
-    </span>
-  );
-}
-
-function ImpactBadge({ impact }) {
-  const map = {
-    high: { color: G.blue, bg: G.blueSoft, border: G.blueMid },
-    medium: { color: G.orange, bg: G.orangeSoft, border: 'rgba(255,159,10,0.25)' },
-    low: { color: G.textTertiary, bg: 'rgba(255,255,255,0.05)', border: G.borderHair },
-  };
-  const s = map[impact] || map.low;
-  return <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 99, background: s.bg, color: s.color, border: `1px solid ${s.border}`, fontFamily: appleFont }}>{impact}</span>;
-}
-
-function App() {
-  const [posts, setPosts] = useState([newPost('LinkedIn'), newPost('Instagram'), newPost('Facebook')]);
-  const [tab, setTab] = useState('input');
-  const [analysis, setAnalysis] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const resultsRef = useRef(null);
-
-  const update = (id, field, value) =>
-    setPosts((ps) =>
-      ps.map((p) => {
-        if (p.id !== id) return p;
-        const next = { ...p, [field]: value };
-        if (field === 'platform') next.postType = POST_TYPES[value][0];
-        return next;
-      })
+  if (payload.low.postingTime !== payload.high.postingTime) {
+    conclusions.push(
+      `Posting at ${payload.high.postingTime.toLowerCase()} appears to align better with audience activity than ${payload.low.postingTime.toLowerCase()}.`
     );
+  }
 
-  const setImage = (id, data) =>
-    setPosts((ps) =>
-      ps.map((p) =>
-        p.id !== id
-          ? p
-          : {
-              ...p,
-              imageBase64: data?.base64 || null,
-              imageMediaType: data?.mediaType || null,
-              imagePreview: data?.preview || null,
-            }
-      )
+  if (hookDelta >= 2) {
+    conclusions.push(
+      `A stronger opening hook (${payload.high.hookScore}/10 vs ${payload.low.hookScore}/10) is strongly correlated with higher engagement and longer attention.`
     );
+  }
 
-  const canAnalyze = posts.length >= 2 && posts.every((p) => p.caption.trim());
+  if (ctaDelta >= 2) {
+    conclusions.push(
+      `CTA clarity improved materially (${payload.high.ctaScore}/10 vs ${payload.low.ctaScore}/10), which likely increased deliberate actions such as saves and shares.`
+    );
+  }
 
-  const analyze = async () => {
-    setLoading(true);
-    setError(null);
-    setAnalysis(null);
+  if (!conclusions.length) {
+    conclusions.push('Performance differences are mostly explained by metric execution quality rather than obvious content-format changes.');
+  }
 
-    const postsData = posts.map((p, i) => ({
-      index: i + 1,
-      platform: p.platform,
-      postType: p.postType,
-      caption: p.caption,
-      audience: p.audience || 'Not specified',
-      timePosted: p.timePosted || 'Not specified',
-      hasImage: !!p.imageBase64,
-      metrics: {
-        impressions: Number(p.impressions) || 0,
-        engagements: Number(p.engagements) || 0,
-        comments: Number(p.comments) || 0,
-        shares: Number(p.shares) || 0,
-        engagementRate: engRate(p) ? `${engRate(p)}%` : 'Unknown',
-      },
-    }));
+  const recommendationList = [
+    `Double down on ${payload.high.contentType.toLowerCase()} posts and test two hook variants each week.`,
+    `Use the high-performing posting window (${payload.high.postingTime}) for key campaign content.`,
+    'Create a stronger CTA pattern: one clear action verb + one explicit audience benefit.',
+  ];
 
-    const userContent = [
-      {
-        type: 'text',
-        text: `You are an expert social media strategist for LinkedIn, Instagram, and Facebook. Analyze these ${posts.length} posts and explain why some performed better than others. Engagement rate = engagements / impressions.
+  if (classifyLift(engagementLift) === 'major') {
+    recommendationList.push('Repurpose the high-performing post into a short video and carousel sequence to capture compounding engagement.');
+  }
 
-Posts:
-${JSON.stringify(postsData, null, 2)}
-
-For posts with uploaded images, analyze visual composition, color palette, text overlays, emotional tone, brand clarity, and alignment with caption.
-
-Respond ONLY with valid JSON:
-{"summary":"...","highPerformerTraits":["..."],"lowPerformerTraits":["..."],"keyInsights":[{"title":"...","detail":"...","impact":"high"}],"actionableRecommendations":["..."],"platformBreakdown":[{"platform":"LinkedIn","observation":"..."}],"postRankings":[{"index":1,"tier":"high","reason":"..."}],"visualNotes":[{"index":1,"notes":null}],"topPost":{"index":1,"reason":"..."},"worstPost":{"index":1,"reason":"..."}}`,
-      },
-    ];
-
-    posts.forEach((p, i) => {
-      if (p.imageBase64) {
-        userContent.push({ type: 'text', text: `Image for Post #${i + 1} (${p.platform} · ${p.postType}):` });
-        userContent.push({ type: 'image', source: { type: 'base64', media_type: p.imageMediaType, data: p.imageBase64 } });
-      }
-    });
-
-    try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 4000,
-          messages: [{ role: 'user', content: userContent }],
-        }),
-      });
-
-      if (!res.ok) throw new Error(`API error ${res.status}`);
-      const data = await res.json();
-      const text = data.content?.map((b) => b.text || '').join('') || '';
-      const first = text.indexOf('{');
-      const last = text.lastIndexOf('}');
-      if (first === -1 || last === -1) throw new Error('No JSON in response');
-      const parsed = JSON.parse(text.slice(first, last + 1));
-      setAnalysis(parsed);
-      setTab('results');
-      setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-    } catch (err) {
-      setError(`Analysis failed: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
+  return {
+    engagementLift,
+    reachLift,
+    saveLift,
+    conclusions,
+    recommendationList,
   };
-
-  return (
-    <div style={{ minHeight: '100vh', background: G.pageBg, fontFamily: appleFont }}>
-      <style>{`
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        select option { background: #1C1C1E; color: rgba(255,255,255,0.9); }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-        .fade-up { animation: fadeUp .35s ease forwards; }
-      `}</style>
-
-      <div style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(10,10,15,0.7)', backdropFilter: 'blur(30px)', borderBottom: `1px solid ${G.separator}` }}>
-        <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 20px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 9, background: 'linear-gradient(135deg, #0A84FF, #5AC8FA)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>📊</div>
-            <span style={{ fontSize: 18, fontWeight: 700, color: G.textPrimary }}>PostIQ</span>
-          </div>
-          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.07)', borderRadius: 10, padding: 3, gap: 2, border: `1px solid ${G.borderHair}` }}>
-            {[{ key: 'input', label: 'Posts' }, { key: 'results', label: `Analysis${analysis ? ' ✓' : ''}` }].map(({ key, label }) => {
-              const active = tab === key;
-              const disabled = key === 'results' && !analysis;
-              return (
-                <button key={key} onClick={() => !disabled && setTab(key)} style={{ padding: '6px 16px', background: active ? 'rgba(255,255,255,0.12)' : 'transparent', border: '1px solid transparent', borderRadius: 8, color: active ? G.textPrimary : disabled ? G.textQuaternary : G.textTertiary, cursor: disabled ? 'default' : 'pointer' }}>
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      <div style={{ maxWidth: 720, margin: '0 auto', padding: '28px 20px 70px' }}>
-        {tab === 'input' && (
-          <div className="fade-up">
-            {posts.map((post, i) => {
-              const pm = PLATFORM_META[post.platform];
-              return (
-                <GlassCard key={post.id} glow={pm.glow} style={{ marginBottom: 14 }}>
-                  <div style={{ padding: '14px 18px', borderBottom: `1px solid ${G.separator}`, display: 'flex', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                      <span style={{ fontSize: 12, color: G.textQuaternary }}>Post {i + 1}</span>
-                      <span style={{ color: pm.color }}>{pm.emoji} {post.platform}</span>
-                    </div>
-                    {posts.length > 2 && <button onClick={() => setPosts((ps) => ps.filter((p) => p.id !== post.id))} style={{ background: 'none', border: 'none', color: G.red }}>Remove</button>}
-                  </div>
-                  <div style={{ padding: 18 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-                      <div><FieldLabel>Platform</FieldLabel><GlassSelect value={post.platform} onChange={(v) => update(post.id, 'platform', v)} options={PLATFORMS} /></div>
-                      <div><FieldLabel>Format</FieldLabel><GlassSelect value={post.postType} onChange={(v) => update(post.id, 'postType', v)} options={POST_TYPES[post.platform]} /></div>
-                    </div>
-                    <div style={{ marginBottom: 14 }}><FieldLabel>Caption *</FieldLabel><GlassInput multiline value={post.caption} onChange={(v) => update(post.id, 'caption', v)} placeholder={`Paste your ${post.platform} post here…`} /></div>
-                    <div style={{ marginBottom: 14 }}><ImageDropzone imagePreview={post.imagePreview} onUpload={(d) => setImage(post.id, d)} onRemove={() => setImage(post.id, null)} /></div>
-                    <div style={{ height: 1, background: G.separator, margin: '6px 0 14px' }} />
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 10 }}>
-                      <MetricField label="Impressions" value={post.impressions} onChange={(v) => update(post.id, 'impressions', v)} placeholder="12,400" accentColor={G.purple} />
-                      <MetricField label="Engagements" value={post.engagements} onChange={(v) => update(post.id, 'engagements', v)} placeholder="486" accentColor={G.blue} />
-                      <MetricField label="Comments" value={post.comments} onChange={(v) => update(post.id, 'comments', v)} placeholder="52" accentColor={G.orange} />
-                      <MetricField label="Shares" value={post.shares} onChange={(v) => update(post.id, 'shares', v)} placeholder="21" accentColor={G.teal} />
-                    </div>
-                    <EngagementRateBar post={post} />
-                  </div>
-                </GlassCard>
-              );
-            })}
-
-            <button onClick={() => setPosts((ps) => [...ps, newPost(PLATFORMS[ps.length % 3])])} style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: `1.5px dashed ${G.borderMid}`, borderRadius: 16, padding: 15, color: G.blue, marginBottom: 14 }}>
-              + Add Post
-            </button>
-
-            {error && <div style={{ background: G.redSoft, border: `1px solid rgba(255,69,58,0.25)`, borderRadius: 12, padding: '13px 16px', marginBottom: 14, color: G.red }}>{error}</div>}
-
-            <button onClick={analyze} disabled={loading || !canAnalyze} style={{ width: '100%', background: canAnalyze && !loading ? 'linear-gradient(135deg, #0A84FF, #5AC8FA)' : 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 14, padding: 17, color: canAnalyze && !loading ? '#fff' : G.textTertiary, fontSize: 16 }}>
-              {loading ? 'Analyzing…' : 'Analyze Performance'}
-            </button>
-          </div>
-        )}
-
-        {tab === 'results' && analysis && (
-          <div className="fade-up" ref={resultsRef}>
-            <GlassCard glow={G.blueGlow} style={{ marginBottom: 14, background: 'rgba(10,132,255,0.08)' }}>
-              <div style={{ padding: '20px' }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: G.blue, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>Analysis Summary</div>
-                <p style={{ color: G.textSecondary, lineHeight: 1.7 }}>{analysis.summary}</p>
-              </div>
-            </GlassCard>
-
-            <SectionLabel>Post Rankings</SectionLabel>
-            <GlassCard style={{ marginBottom: 14 }}>
-              {(analysis.postRankings || []).map((r, i, arr) => {
-                const post = posts[r.index - 1];
-                if (!post) return null;
-                return (
-                  <div key={r.index} style={{ padding: '13px 18px', borderBottom: i < arr.length - 1 ? `1px solid ${G.separator}` : 'none', display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{ color: G.textPrimary }}>{i + 1}</span>
-                    <div style={{ flex: 1 }}><div style={{ color: G.textPrimary, fontSize: 13 }}>{post.caption || '(No caption)'}</div><div style={{ color: G.textTertiary, fontSize: 11 }}>{r.reason}</div></div>
-                    <TierChip tier={r.tier} />
-                  </div>
-                );
-              })}
-            </GlassCard>
-
-            <SectionLabel>Key Insights</SectionLabel>
-            <GlassCard style={{ marginBottom: 14 }}>
-              {(analysis.keyInsights || []).map((ins, i, arr) => (
-                <div key={i} style={{ padding: '16px 18px', borderBottom: i < arr.length - 1 ? `1px solid ${G.separator}` : 'none' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}><span style={{ color: G.textPrimary }}>{ins.title}</span><ImpactBadge impact={ins.impact} /></div>
-                  <p style={{ color: G.textSecondary, lineHeight: 1.6 }}>{ins.detail}</p>
-                </div>
-              ))}
-            </GlassCard>
-          </div>
-        )}
-      </div>
-    </div>
-  );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+function liftClass(value) {
+  return value >= 0 ? 'metric-up' : 'metric-warn';
+}
+
+function render(result) {
+  scoreCard.innerHTML = `
+    <strong>Performance delta</strong>
+    <div class="${liftClass(result.engagementLift)}">Engagement lift: ${result.engagementLift.toFixed(1)}%</div>
+    <div class="${liftClass(result.reachLift)}">Reach lift: ${result.reachLift.toFixed(1)}%</div>
+    <div class="${liftClass(result.saveLift)}">Saves/Shares lift: ${result.saveLift.toFixed(1)}%</div>
+  `;
+
+  insights.innerHTML = `
+    <strong>Why high-performing posts won</strong>
+    <ul>${result.conclusions.map((item) => `<li>${item}</li>`).join('')}</ul>
+  `;
+
+  recommendations.innerHTML = `
+    <strong>What to do next</strong>
+    <ul>${result.recommendationList.map((item) => `<li>${item}</li>`).join('')}</ul>
+  `;
+}
+
+function loadExampleData() {
+  Object.entries(exampleData).forEach(([key, value]) => {
+    fields[key].value = value;
+  });
+
+  const result = analyze(getPayload());
+  render(result);
+}
+
+form.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const result = analyze(getPayload());
+  render(result);
+});
+
+loadExampleBtn.addEventListener('click', loadExampleData);
+
+scoreCard.innerHTML = '<div class="empty-state">Submit post data to calculate performance lift.</div>';
+insights.innerHTML = '<div class="empty-state">Conclusions will appear here after analysis.</div>';
+recommendations.innerHTML = '<div class="empty-state">Actionable recommendations will appear here.</div>';
+
+loadExampleData();

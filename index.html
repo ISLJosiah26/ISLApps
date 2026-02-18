@@ -3,14 +3,224 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PostIQ</title>
+    <title>Social Post Intelligence</title>
+    <title>Social Post Performance Analyzer</title>
     <link rel="stylesheet" href="styles.css" />
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="text/babel" src="app.js"></script>
+    <main class="layout">
+      <section class="panel controls">
+        <header class="panel-head">
+          <p class="eyebrow">AI PERFORMANCE LAB</p>
+          <h1>Social Post Intelligence</h1>
+          <p class="subtitle">
+            Compare multiple posts in one place. The AI estimates hook and CTA strength, then explains winners in plain language.
+          </p>
+        </header>
+
+        <div class="toolbar">
+          <button type="button" id="loadExampleBtn">Load Example Set</button>
+          <button type="button" id="analyzeBtn" class="primary">Analyze All Posts</button>
+        </div>
+
+        <div id="postCards" class="post-cards"></div>
+
+        <div class="add-row">
+          <button type="button" id="addPostBtn" class="primary ghost">+ Add New Post</button>
+        </div>
+      </section>
+
+      <section class="panel output">
+        <h2>AI Insights</h2>
+        <p class="output-subtitle">Conversational analysis across creative quality, copy strategy, timing, and results.</p>
+
+        <div id="scoreCard" class="score-card" aria-live="polite"></div>
+        <div id="conversation" class="insights" aria-live="polite"></div>
+        <div id="comparison" class="insights" aria-live="polite"></div>
+        <div id="recommendations" class="recommendations" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <template id="postCardTemplate">
+      <article class="post-card" data-card>
+        <div class="post-card-head">
+          <h3 class="post-title">Post <span data-post-number></span></h3>
+          <button type="button" class="remove-btn" data-remove>Remove</button>
+        </div>
+
+        <div class="upload-group">
+          <span class="field-label">Upload post creative</span>
+          <label class="upload-shell">
+            <input type="file" data-field="image" accept="image/*" />
+            <span class="upload-btn">Choose image</span>
+            <span class="upload-name" data-file-name>No file selected</span>
+          </label>
+        </div>
+        <img class="thumb" data-preview alt="Post creative preview" />
+
+        <label>
+          Caption
+          <textarea data-field="caption" rows="3" placeholder="Paste the post caption..."></textarea>
+        </label>
+
+        <div class="grid-two">
+          <label>
+            Platform
+            <input type="text" data-field="platform" placeholder="Instagram" />
+          </label>
+          <label>
+            Post type
+            <select data-field="postType">
+              <option value="">Select type</option>
+              <option>Image</option>
+              <option>Video</option>
+              <option>Carousel</option>
+              <option>Reel</option>
+              <option>Text</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="grid-four">
+          <label>
+            Likes
+            <input type="number" min="0" step="1" data-field="likes" value="0" />
+          </label>
+          <label>
+            Comments
+            <input type="number" min="0" step="1" data-field="comments" value="0" />
+          </label>
+          <label>
+            Impressions
+            <input type="number" min="0" step="1" data-field="impressions" value="0" />
+          </label>
+          <label>
+            Engagements
+            <input type="number" min="0" step="1" data-field="engagements" value="0" />
+          </label>
+        </div>
+
+        <div class="grid-two">
+          <label>
+            Post date
+            <input type="date" data-field="postDate" />
+          </label>
+          <label>
+            Post time
+            <input type="time" data-field="postTime" />
+          </label>
+        </div>
+      </article>
+    </template>
+        <h1>Social Post Performance Analyzer</h1>
+        <p class="subtitle">
+          Compare low-performing and high-performing posts, then generate AI-style conclusions about what drives better
+          results.
+        </p>
+
+        <form id="analysis-form">
+          <fieldset>
+            <legend>Low-performing post</legend>
+            <label>
+              Platform
+              <input type="text" id="lowPlatform" placeholder="Instagram" required />
+            </label>
+            <label>
+              Content type
+              <select id="lowContentType" required>
+                <option value="">Select type</option>
+                <option>Image</option>
+                <option>Video</option>
+                <option>Carousel</option>
+                <option>Text</option>
+              </select>
+            </label>
+            <label>
+              Posting time
+              <input type="text" id="lowPostingTime" placeholder="Weekday morning" required />
+            </label>
+            <label>
+              Hook / headline quality (1-10)
+              <input type="number" min="1" max="10" id="lowHookScore" value="4" required />
+            </label>
+            <label>
+              CTA strength (1-10)
+              <input type="number" min="1" max="10" id="lowCtaScore" value="3" required />
+            </label>
+            <label>
+              Engagement rate (%)
+              <input type="number" min="0" step="0.01" id="lowEngagement" value="1.2" required />
+            </label>
+            <label>
+              Reach
+              <input type="number" min="0" step="1" id="lowReach" value="3200" required />
+            </label>
+            <label>
+              Saves / shares
+              <input type="number" min="0" step="1" id="lowSaves" value="18" required />
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>High-performing post</legend>
+            <label>
+              Platform
+              <input type="text" id="highPlatform" placeholder="Instagram" required />
+            </label>
+            <label>
+              Content type
+              <select id="highContentType" required>
+                <option value="">Select type</option>
+                <option>Image</option>
+                <option>Video</option>
+                <option>Carousel</option>
+                <option>Text</option>
+              </select>
+            </label>
+            <label>
+              Posting time
+              <input type="text" id="highPostingTime" placeholder="Weekday evening" required />
+            </label>
+            <label>
+              Hook / headline quality (1-10)
+              <input type="number" min="1" max="10" id="highHookScore" value="8" required />
+            </label>
+            <label>
+              CTA strength (1-10)
+              <input type="number" min="1" max="10" id="highCtaScore" value="8" required />
+            </label>
+            <label>
+              Engagement rate (%)
+              <input type="number" min="0" step="0.01" id="highEngagement" value="4.8" required />
+            </label>
+            <label>
+              Reach
+              <input type="number" min="0" step="1" id="highReach" value="14900" required />
+            </label>
+            <label>
+              Saves / shares
+              <input type="number" min="0" step="1" id="highSaves" value="264" required />
+            </label>
+          </fieldset>
+
+          <div class="actions">
+            <button type="submit" class="primary">Generate conclusions</button>
+            <button type="button" id="loadExampleBtn">Load example data</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel output">
+        <h2>Insights & conclusions</h2>
+        <div id="scoreCard" class="score-card" aria-live="polite"></div>
+        <div id="insights" class="insights" aria-live="polite"></div>
+        <div id="recommendations" class="recommendations" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
   </body>
 </html>
