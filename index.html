@@ -3,12 +3,115 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Social Post Intelligence</title>
     <title>Social Post Performance Analyzer</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <main class="layout">
       <section class="panel controls">
+        <header class="panel-head">
+          <p class="eyebrow">AI PERFORMANCE LAB</p>
+          <h1>Social Post Intelligence</h1>
+          <p class="subtitle">
+            Compare multiple posts in one place. The AI estimates hook and CTA strength, then explains winners in plain language.
+          </p>
+        </header>
+
+        <div class="toolbar">
+          <button type="button" id="loadExampleBtn">Load Example Set</button>
+          <button type="button" id="analyzeBtn" class="primary">Analyze All Posts</button>
+        </div>
+
+        <div id="postCards" class="post-cards"></div>
+
+        <div class="add-row">
+          <button type="button" id="addPostBtn" class="primary ghost">+ Add New Post</button>
+        </div>
+      </section>
+
+      <section class="panel output">
+        <h2>AI Insights</h2>
+        <p class="output-subtitle">Conversational analysis across creative quality, copy strategy, timing, and results.</p>
+
+        <div id="scoreCard" class="score-card" aria-live="polite"></div>
+        <div id="conversation" class="insights" aria-live="polite"></div>
+        <div id="comparison" class="insights" aria-live="polite"></div>
+        <div id="recommendations" class="recommendations" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <template id="postCardTemplate">
+      <article class="post-card" data-card>
+        <div class="post-card-head">
+          <h3 class="post-title">Post <span data-post-number></span></h3>
+          <button type="button" class="remove-btn" data-remove>Remove</button>
+        </div>
+
+        <div class="upload-group">
+          <span class="field-label">Upload post creative</span>
+          <label class="upload-shell">
+            <input type="file" data-field="image" accept="image/*" />
+            <span class="upload-btn">Choose image</span>
+            <span class="upload-name" data-file-name>No file selected</span>
+          </label>
+        </div>
+        <img class="thumb" data-preview alt="Post creative preview" />
+
+        <label>
+          Caption
+          <textarea data-field="caption" rows="3" placeholder="Paste the post caption..."></textarea>
+        </label>
+
+        <div class="grid-two">
+          <label>
+            Platform
+            <input type="text" data-field="platform" placeholder="Instagram" />
+          </label>
+          <label>
+            Post type
+            <select data-field="postType">
+              <option value="">Select type</option>
+              <option>Image</option>
+              <option>Video</option>
+              <option>Carousel</option>
+              <option>Reel</option>
+              <option>Text</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="grid-four">
+          <label>
+            Likes
+            <input type="number" min="0" step="1" data-field="likes" value="0" />
+          </label>
+          <label>
+            Comments
+            <input type="number" min="0" step="1" data-field="comments" value="0" />
+          </label>
+          <label>
+            Impressions
+            <input type="number" min="0" step="1" data-field="impressions" value="0" />
+          </label>
+          <label>
+            Engagements
+            <input type="number" min="0" step="1" data-field="engagements" value="0" />
+          </label>
+        </div>
+
+        <div class="grid-two">
+          <label>
+            Post date
+            <input type="date" data-field="postDate" />
+          </label>
+          <label>
+            Post time
+            <input type="time" data-field="postTime" />
+          </label>
+        </div>
+      </article>
+    </template>
         <h1>Social Post Performance Analyzer</h1>
         <p class="subtitle">
           Compare low-performing and high-performing posts, then generate AI-style conclusions about what drives better
