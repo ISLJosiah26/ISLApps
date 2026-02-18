@@ -1,37 +1,43 @@
-# Social Post Intelligence (Apple-style UI)
+# Social Post Intelligence (Minimal Gotham UI)
 
-A sleek, modern web app that lets you upload and compare **multiple social posts** at once.
+A sleek, minimal web app that lets you upload and compare **multiple social posts** in separate tiles.
 
 ## What changed
 
-- Replaced fixed “low-performing vs high-performing” mode with a **dynamic card system**.
-- Add as many posts as you want, then analyze all together.
-- Per-post inputs are now exactly what you asked for:
-  - Post image upload
-  - Caption
-  - Platform
-  - Post type
-  - Likes
-  - Comments
-  - Impressions
-  - Engagements
-  - Post date
-  - Post time
-- AI now auto-estimates from caption text:
-  - Hook quality score (1–10)
-  - CTA strength score (1–10)
-- Results are written in a **conversational style**, plus ranked comparisons and recommended actions.
+- Removed the fixed low-vs-high structure and use a **multi-post tile layout**.
+- Each post is an independent tile (no left-panel internal scroll container).
+- Added a dedicated **Add New Post** button underneath the tiles.
+- Updated to a cleaner, more minimal visual system.
+- Typography now uses **Gotham Light** (with local fallbacks).
+
+## Per-post inputs
+
+- Post image upload
+- Caption
+- Platform
+- Post type
+- Likes
+- Comments
+- Impressions
+- Engagements
+- Post date
+- Post time
+
+## AI behavior
+
+- Auto-estimates caption-based:
+  - Hook quality (1–10)
+  - CTA strength (1–10)
+- Compares all posts and returns:
+  - Top-performer snapshot
+  - Conversational summary
+  - Ranked comparison
+  - Actionable recommendations
 
 ## Usage
 
 1. Open `index.html` in your browser.
-2. Click **Add Post** to create cards.
-3. Fill each post card (and optionally upload images).
-4. Click **Analyze All Posts**.
-5. Review:
-   - Top performer summary
-   - Conversational AI explanation
-   - Post-by-post comparison
-   - Recommended next actions
-
-Use **Load Example Set** to test quickly.
+2. Add post tiles and fill inputs.
+3. Click **Analyze All Posts**.
+4. Use **Add New Post** to expand your comparison set.
+5. Optionally load sample data with **Load Example Set**.

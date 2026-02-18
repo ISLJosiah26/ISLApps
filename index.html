@@ -7,29 +7,29 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="bg-orb orb-1"></div>
-    <div class="bg-orb orb-2"></div>
-
     <main class="layout">
-      <section class="panel controls glass">
+      <section class="panel controls">
         <header class="panel-head">
           <p class="eyebrow">AI PERFORMANCE LAB</p>
           <h1>Social Post Intelligence</h1>
           <p class="subtitle">
-            Upload as many posts as you want. The AI compares them, estimates hook + CTA strength, and explains winners in plain English.
+            Compare multiple posts in one place. The AI estimates hook and CTA strength, then explains winners in plain language.
           </p>
         </header>
 
         <div class="toolbar">
-          <button type="button" id="addPostBtn" class="primary">+ Add Post</button>
           <button type="button" id="loadExampleBtn">Load Example Set</button>
-          <button type="button" id="analyzeBtn">Analyze All Posts</button>
+          <button type="button" id="analyzeBtn" class="primary">Analyze All Posts</button>
         </div>
 
         <div id="postCards" class="post-cards"></div>
+
+        <div class="add-row">
+          <button type="button" id="addPostBtn" class="primary ghost">+ Add New Post</button>
+        </div>
       </section>
 
-      <section class="panel output glass">
+      <section class="panel output">
         <h2>AI Insights</h2>
         <p class="output-subtitle">Conversational analysis across creative quality, copy strategy, timing, and results.</p>
 
