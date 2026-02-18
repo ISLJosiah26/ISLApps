@@ -1,32 +1,30 @@
-# Recruitment Social Ad Generator
+# Social Post Performance Analyzer
 
-A simple web app to generate branded recruitment post graphics in **portrait** or **landscape** PNG format.
+A lightweight web app that compares a low-performing social media post against a high-performing post and generates AI-style conclusions for why one outperformed the other.
 
-## Features
+## What it does
 
-- Enter only:
-  - Job title
-  - Location
-  - Contact name
-- Select orientation:
-  - Portrait (1080x1350)
-  - Landscape (1200x628)
-- Export as PNG in one click.
-- Styling and canvas text are configured to use **Gotham** font (with fallbacks if Gotham is unavailable on the machine).
-- Layout follows the supplied blue wave Integrated Staffing-style format.
+- Captures post attributes for two posts:
+  - Platform
+  - Content type
+  - Posting time
+  - Hook quality score
+  - CTA strength score
+  - Engagement rate
+  - Reach
+  - Saves/Shares
+- Calculates performance lift percentages for:
+  - Engagement
+  - Reach
+  - Saves/Shares
+- Produces automated conclusions about probable performance drivers.
+- Suggests practical next-step recommendations.
 
 ## Usage
 
-1. Open `index.html` in a browser.
-2. Fill in the three fields.
-3. Select portrait or landscape.
-4. Click **Download PNG**.
+1. Open `index.html` in your browser.
+2. Enter values for both the low-performing and high-performing posts.
+3. Click **Generate conclusions**.
+4. Review the generated insights and recommendations.
 
-## Customisation
-
-Update these in `app.js`:
-
-- `brand.company`
-- `brand.website`
-- `brand.colours`
-- `sizes` for output dimensions
+You can also click **Load example data** to populate a sample scenario.
