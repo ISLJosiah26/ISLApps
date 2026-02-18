@@ -311,16 +311,39 @@ function renderConversation(posts) {
   const winner = ranked[0];
   const runnerUp = ranked[1];
   const lowest = ranked[ranked.length - 1];
+
   const spread = winner.performanceScore - lowest.performanceScore;
+  const engagementGap = winner.engagementRate - lowest.engagementRate;
+  const hookGap = winner.hookQuality - lowest.hookQuality;
+  const ctaGap = winner.ctaStrength - lowest.ctaStrength;
+
+  const plainReasons = [];
+  if (hookGap > 1) {
+    plainReasons.push(`it starts stronger (hook ${winner.hookQuality}/10 vs ${lowest.hookQuality}/10)`);
+  }
+  if (ctaGap > 1) {
+    plainReasons.push(`it asks for action more clearly (CTA ${winner.ctaStrength}/10 vs ${lowest.ctaStrength}/10)`);
+  }
+  if (winner.commentsToLikes > lowest.commentsToLikes) {
+    plainReasons.push('it creates deeper conversation, not just passive likes');
+  }
+  if (winner.dayPart !== 'unknown time') {
+    plainReasons.push(`it was posted in a ${winner.dayPart} window that appears to work better for your audience`);
+  }
+
+  const reasonLine =
+    plainReasons.length > 0
+      ? `Most likely, it won because ${plainReasons.join(', ')}.`
+      : 'Most likely, it won through better overall message fit and audience relevance.';
 
   const message = `
-    <p><strong>Quick diagnosis:</strong> Post ${winner.id} is leading with a ${formatPercent(
+    <p><strong>What I’m seeing:</strong> Post ${winner.id} is your current winner. It reached an engagement rate of ${formatPercent(
       winner.engagementRate
-    )} engagement rate and the strongest creative signature in this set.</p>
-    <p>The gap versus Post ${lowest.id} is <strong>${spread.toFixed(1)} score points</strong>. In plain terms, the winner combines better hook architecture, clearer action language, and stronger audience response momentum.</p>
-    <p><strong>Creative read on Post ${winner.id}:</strong> ${escapeHtml(getCreativeCritique(winner))}.</p>
-    <p><strong>Compared with Post ${runnerUp.id}:</strong> your top two are close, but Post ${winner.id} edges ahead because its conversion language is sharper and the interaction profile is healthier.</p>
-    <p>${escapeHtml(summarizeVisualDifference(winner, lowest))}</p>
+    )}, and it leads the set by <strong>${spread.toFixed(1)} score points</strong>.</p>
+    <p>Compared with Post ${lowest.id}, that is a <strong>${engagementGap.toFixed(2)}%</strong> engagement-rate lift. ${reasonLine}</p>
+    <p>Post ${runnerUp.id} is close, so your top pattern is repeatable. Keep the same message spine from Post ${winner.id}, but test 2 new first-line hooks and 2 CTA endings to find the next lift.</p>
+    <p><strong>Visual note:</strong> ${escapeHtml(summarizeVisualDifference(winner, lowest))}</p>
+    <p><strong>Simple takeaway:</strong> clearer opening + clearer action + better timing is outperforming generic phrasing.</p>
   `;
 
   conversation.innerHTML = `<strong>Conversational AI summary</strong>${message}`;
@@ -338,7 +361,7 @@ function renderComparison(posts) {
     )
     .join('');
 
-  comparison.innerHTML = `<strong>Post-by-post creative comparison</strong><ul>${rows}</ul>`;
+  comparison.innerHTML = `<strong>Post-by-post breakdown (plain language)</strong><ul>${rows}</ul>`;
 }
 
 function renderRecommendations(posts) {

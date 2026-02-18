@@ -34,8 +34,8 @@ A sleek, Apple-inspired web app that lets you upload and compare **multiple soci
   - CTA strength (1–10)
 - Compares all posts and returns:
   - Top-performer snapshot
-  - Conversational summary with deeper critique
-  - Ranked creative comparison with per-post critique notes
+  - Deeper conversational summary in simple language (single combined narrative)
+  - Ranked plain-language post breakdown with per-post critique notes
   - Actionable recommendations
 
 ## Usage
